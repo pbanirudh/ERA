@@ -1,0 +1,1272 @@
+﻿<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+
+  <meta charset="UTF-8">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>Executive Retail Analytics & Churn Intelligence Platform</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="/static/styles.css">
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+</head>
+
+<body>
+
+
+
+  <div class="dashboard-layout">
+
+    
+
+    <!-- Top Navigation Header -->
+
+    <header class="top-nav animate-entrance">
+
+      <div class="brand-section">
+
+        <div class="brand-badge">ER</div>
+
+        <div>
+
+          <h1 class="brand-title">E-Commerce Retention & Revenue Platform</h1>
+
+          <p class="brand-subtitle">UK Wholesale Retail Intelligence â€¢ SQL, Python, Excel & Machine Learning</p>
+
+        </div>
+
+      </div>
+
+      <div class="nav-actions">
+
+        <div class="live-pill" title="Connected to SQLite online_retail.db">
+
+          <span class="pulse-dot"></span>
+
+          <span>SQLite Connected â€¢ 392,692 Rows</span>
+
+        </div>
+
+        <button class="quick-btn" onclick="refreshCurrentView()">
+
+          <span>â†»</span> Refresh Live
+
+        </button>
+
+      </div>
+
+    </header>
+
+
+
+    <!-- Master Multi-View Navigation Menu -->
+
+    <nav class="main-menu-bar animate-entrance delay-1">
+
+      <button class="menu-tab-btn active" data-view="overview" onclick="switchView('overview')">
+
+        <span>ðŸ“Š</span> Executive Overview
+
+      </button>
+
+      <button class="menu-tab-btn" data-view="customer360" onclick="switchView('customer360')">
+
+        <span>ðŸ‘¤</span> Customer 360
+
+      </button>
+
+      <button class="menu-tab-btn" data-view="cohorts" onclick="switchView('cohorts')">
+
+        <span>ðŸ§¬</span> Cohort Studio
+
+      </button>
+
+      <button class="menu-tab-btn" data-view="churn" onclick="switchView('churn')">
+
+        <span>ðŸŽ¯</span> ML Churn Radar
+
+      </button>
+
+      <button class="menu-tab-btn" data-view="datastudio" onclick="switchView('datastudio')">
+
+        <span>ðŸ“</span> Data Studio & Upload
+
+      </button>
+
+      <button class="menu-tab-btn" data-view="sqlsandbox" onclick="switchView('sqlsandbox')">
+
+        <span>ðŸ”</span> SQL Sandbox
+
+      </button>
+
+    </nav>
+
+
+
+    <!-- ===================================================================
+
+         VIEW 1: EXECUTIVE OVERVIEW (DASHBOARD)
+
+    =================================================================== -->
+
+    <div id="view-overview" class="view-panel active">
+
+      
+
+      <!-- 5 Executive KPI Cards -->
+
+      <section class="kpi-grid">
+
+        <div class="kpi-card highlight-blue">
+
+          <div class="kpi-header">
+
+            <span class="kpi-label">Total Revenue</span>
+
+            <div class="kpi-icon-pill" style="background:#eff6ff; color:#2563eb;">Â£</div>
+
+          </div>
+
+          <div class="kpi-value" id="kpiRevenue">Â£0.00</div>
+
+          <div class="kpi-subtext">
+
+            <span class="trend-badge trend-positive">Cleaned Data</span> 392,692 orders
+
+          </div>
+
+        </div>
+
+
+
+        <div class="kpi-card highlight-indigo">
+
+          <div class="kpi-header">
+
+            <span class="kpi-label">Active Customers</span>
+
+            <div class="kpi-icon-pill" style="background:#eef2ff; color:#6366f1;">ðŸ‘¥</div>
+
+          </div>
+
+          <div class="kpi-value" id="kpiCustomers">0</div>
+
+          <div class="kpi-subtext">
+
+            <span class="trend-badge trend-positive">Â£449 AOV</span> across 37 nations
+
+          </div>
+
+        </div>
+
+
+
+        <div class="kpi-card highlight-emerald">
+
+          <div class="kpi-header">
+
+            <span class="kpi-label">Repeat Spend Share</span>
+
+            <div class="kpi-icon-pill" style="background:#ecfdf5; color:#10b981;">ðŸ”</div>
+
+          </div>
+
+          <div class="kpi-value" id="kpiRepeatShare">0%</div>
+
+          <div class="kpi-subtext">
+
+            <span class="trend-badge trend-positive">65.6% Users</span> drive 93.1% GMV
+
+          </div>
+
+        </div>
+
+
+
+        <div class="kpi-card highlight-amber">
+
+          <div class="kpi-header">
+
+            <span class="kpi-label">Top 10% Spend Share</span>
+
+            <div class="kpi-icon-pill" style="background:#fffbeb; color:#f59e0b;">â­</div>
+
+          </div>
+
+          <div class="kpi-value" id="kpiTop10Share">0%</div>
+
+          <div class="kpi-subtext">
+
+            <span class="trend-badge trend-positive">433 VIPs</span> Â£5.46M volume
+
+          </div>
+
+        </div>
+
+
+
+        <div class="kpi-card highlight-coral">
+
+          <div class="kpi-header">
+
+            <span class="kpi-label">60-Day Churn Risk</span>
+
+            <div class="kpi-icon-pill" style="background:#fff1f2; color:#f43f5e;">âš ï¸</div>
+
+          </div>
+
+          <div class="kpi-value" id="kpiChurnRate">0%</div>
+
+          <div class="kpi-subtext">
+
+            <span class="trend-badge trend-warning" id="kpiAtRiskCount">0 at-risk</span> accounts
+
+          </div>
+
+        </div>
+
+      </section>
+
+
+
+      <!-- Charts Row 1: Monthly Trends + Tier Concentration -->
+
+      <section class="charts-grid-2">
+
+        <div class="surface-card">
+
+          <div class="card-title-row">
+
+            <div>
+
+              <h2 class="card-title">Monthly Revenue & Order Volume Surge</h2>
+
+              <p class="card-subtitle">Tracking seasonal growth and Q4 holiday order volume surge</p>
+
+            </div>
+
+          </div>
+
+          <div class="chart-container">
+
+            <canvas id="trendChart"></canvas>
+
+          </div>
+
+        </div>
+
+
+
+        <div class="surface-card">
+
+          <div class="card-title-row">
+
+            <div>
+
+              <h2 class="card-title">Revenue Concentration by Tier</h2>
+
+              <p class="card-subtitle">Pareto spend distribution</p>
+
+            </div>
+
+          </div>
+
+          <div class="chart-container">
+
+            <canvas id="tierDonutChart"></canvas>
+
+          </div>
+
+        </div>
+
+      </section>
+
+
+
+      <!-- Charts Row 2: Churn Distribution & Cadence -->
+
+      <section class="charts-grid-2">
+
+        <div class="surface-card">
+
+          <div class="card-title-row">
+
+            <div>
+
+              <h2 class="card-title">Machine Learning Churn Risk Radar</h2>
+
+              <p class="card-subtitle">XGBoost predictive scoring across 3,616 accounts (73.6% Recall)</p>
+
+            </div>
+
+          </div>
+
+          <div class="chart-container">
+
+            <canvas id="churnRiskChart"></canvas>
+
+          </div>
+
+        </div>
+
+
+
+        <div class="surface-card">
+
+          <div class="card-title-row">
+
+            <div>
+
+              <h2 class="card-title">Inter-Purchase Repurchase Cadence</h2>
+
+              <p class="card-subtitle">Validating the 60-day customer inactivity drop-off</p>
+
+            </div>
+
+          </div>
+
+          <div class="chart-container">
+
+            <canvas id="cadenceChart"></canvas>
+
+          </div>
+
+        </div>
+
+      </section>
+
+
+
+      <!-- Customer Explorer Table -->
+
+      <section class="surface-card">
+
+        <div class="card-title-row">
+
+          <div>
+
+            <h2 class="card-title">Customer Portfolio Explorer</h2>
+
+            <p class="card-subtitle">Click any Customer ID to view their Customer 360 profile</p>
+
+          </div>
+
+        </div>
+
+
+
+        <div class="search-bar-row">
+
+          <div class="search-input-wrap">
+
+            <span class="search-icon">ðŸ”</span>
+
+            <input type="text" id="customerSearchInput" class="search-input" placeholder="Search by CustomerID or Country (e.g. 14646, 17850, Germany)...">
+
+          </div>
+
+          <select id="tierFilterSelect" class="filter-select">
+
+            <option value="all">All Customer Tiers</option>
+
+            <option value="Platinum">Platinum Tier (Top 10%)</option>
+
+            <option value="Gold">Gold Tier (Top 25%)</option>
+
+            <option value="General">General Tier</option>
+
+          </select>
+
+        </div>
+
+
+
+        <div class="data-table-wrapper">
+
+          <table class="data-table">
+
+            <thead>
+
+              <tr>
+
+                <th>Customer ID</th>
+
+                <th>Country</th>
+
+                <th>Total Spend</th>
+
+                <th>Orders</th>
+
+                <th>AOV</th>
+
+                <th>Days Inactive</th>
+
+                <th>Rank</th>
+
+                <th>Customer Tier</th>
+
+                <th>Status</th>
+
+                <th>ML Churn Risk</th>
+
+              </tr>
+
+            </thead>
+
+            <tbody id="customerTableBody"></tbody>
+
+          </table>
+
+        </div>
+
+      </section>
+
+
+
+      <!-- Revenue Forecast Simulator -->
+
+      <section class="surface-card">
+
+        <div class="card-title-row">
+
+          <div>
+
+            <h2 class="card-title">Dynamic 2012 Revenue Scenario Simulator</h2>
+
+            <p class="card-subtitle">Adjust organic growth rate and retention recovery uplift in real time</p>
+
+          </div>
+
+        </div>
+
+
+
+        <div class="simulator-box">
+
+          <div>
+
+            <div class="slider-group">
+
+              <div class="slider-label-row">
+
+                <span>Baseline Organic Growth Rate:</span>
+
+                <span class="slider-val-bubble" id="growthValBubble">+8.0%</span>
+
+              </div>
+
+              <input type="range" id="growthSlider" class="custom-slider" min="0" max="25" step="0.5" value="8.0">
+
+            </div>
+
+
+
+            <div class="slider-group">
+
+              <div class="slider-label-row">
+
+                <span>At-Risk Churn Recovery Uplift (Saved GMV):</span>
+
+                <span class="slider-val-bubble" id="churnValBubble">+5.0%</span>
+
+              </div>
+
+              <input type="range" id="churnSlider" class="custom-slider" min="0" max="20" step="0.5" value="5.0">
+
+            </div>
+
+
+
+            <p style="font-size: 12px; color: var(--text-muted); margin-top: 14px;">
+
+              *Simulates 2012 projected revenue using empirical 2011 baseline (Â£8.89M) and tier-weighted retention elasticity.
+
+            </p>
+
+          </div>
+
+
+
+          <div class="simulator-result-card">
+
+            <div class="sim-headline">Projected 2012 Revenue</div>
+
+            <div class="sim-big-value" id="projectedRevenueVal">Â£9,675,413</div>
+
+            <div class="sim-incremental" id="incrementalRevenueVal">+Â£788,204 (+8.87% Uplift)</div>
+
+            <div style="font-size: 12px; color: var(--text-secondary); margin-top: 12px;" id="simTierBreakdown">
+
+              Platinum: Â£5.94M â€¢ Gold: Â£1.29M â€¢ General: Â£2.45M
+
+            </div>
+
+          </div>
+
+        </div>
+
+      </section>
+
+
+
+    </div>
+
+
+
+
+
+    <!-- ===================================================================
+
+         VIEW 2: CUSTOMER 360 (DEEP DIVE PROFILE)
+
+    =================================================================== -->
+
+    <div id="view-customer360" class="view-panel">
+
+      
+
+      <div class="surface-card">
+
+        <div class="card-title-row">
+
+          <div>
+
+            <h2 class="card-title">Customer 360 Account Intelligence</h2>
+
+            <p class="card-subtitle">Look up individual customer accounts to view RFM scores, purchase history, and AI recommendations</p>
+
+          </div>
+
+          <div style="display:flex; gap:8px;">
+
+            <span style="font-size:13px; color:var(--text-muted); align-self:center;">Quick Select VIPs:</span>
+
+            <button class="quick-btn" onclick="lookupCustomer(14646)">#14646 (Top Spender)</button>
+
+            <button class="quick-btn" onclick="lookupCustomer(18102)">#18102 (VIP)</button>
+
+            <button class="quick-btn" onclick="lookupCustomer(17450)">#17450 (At-Risk)</button>
+
+          </div>
+
+        </div>
+
+
+
+        <div class="search-bar-row">
+
+          <div class="search-input-wrap">
+
+            <span class="search-icon">ðŸ”</span>
+
+            <input type="number" id="c360Input" class="search-input" placeholder="Enter CustomerID (e.g. 14646, 17850, 12346)...">
+
+          </div>
+
+          <button class="btn-primary" onclick="lookupCustomer()">Load Profile</button>
+
+        </div>
+
+
+
+        <!-- Customer 360 Profile Display -->
+
+        <div id="c360ProfileContainer" style="display:none;">
+
+          
+
+          <div class="customer-360-header">
+
+            <div style="display:flex; align-items:center; gap:16px;">
+
+              <div class="c360-avatar" id="c360Avatar">C</div>
+
+              <div class="c360-info-col">
+
+                <h3 id="c360Name">Customer #14646</h3>
+
+                <p id="c360Country">Country: Netherlands â€¢ Customer Since: Dec 2010</p>
+
+              </div>
+
+            </div>
+
+            <div style="display:flex; gap:10px; align-items:center;">
+
+              <span class="badge badge-platinum" id="c360TierBadge" style="font-size:13px; padding:6px 14px;">Platinum Tier</span>
+
+              <span class="badge badge-risk-low" id="c360RiskBadge" style="font-size:13px; padding:6px 14px;">Low Risk</span>
+
+            </div>
+
+          </div>
+
+
+
+          <!-- Quick Metrics Grid -->
+
+          <div class="kpi-grid" style="grid-template-columns: repeat(4, 1fr); margin-bottom: 24px;">
+
+            <div class="kpi-card highlight-blue">
+
+              <div class="kpi-label">Lifetime Spend</div>
+
+              <div class="kpi-value" id="c360Spend">Â£0.00</div>
+
+              <div class="kpi-subtext" id="c360Rank">Portfolio Rank: #1</div>
+
+            </div>
+
+            <div class="kpi-card highlight-indigo">
+
+              <div class="kpi-label">Total Invoices</div>
+
+              <div class="kpi-value" id="c360Orders">0</div>
+
+              <div class="kpi-subtext" id="c360Items">0 total units</div>
+
+            </div>
+
+            <div class="kpi-card highlight-emerald">
+
+              <div class="kpi-label">Average Order Value</div>
+
+              <div class="kpi-value" id="c360AOV">Â£0.00</div>
+
+              <div class="kpi-subtext">per completed order</div>
+
+            </div>
+
+            <div class="kpi-card highlight-coral">
+
+              <div class="kpi-label">Days Since Last Order</div>
+
+              <div class="kpi-value" id="c360Recency">0d</div>
+
+              <div class="kpi-subtext" id="c360LastDate">Latest: 2011-12-08</div>
+
+            </div>
+
+          </div>
+
+
+
+          <!-- RFM Scorecard -->
+
+          <h3 style="font-size:15px; font-weight:700; margin-bottom:12px; font-family:var(--font-display);">RFM Analytical Scorecard</h3>
+
+          <div class="rfm-score-grid">
+
+            <div class="rfm-score-box">
+
+              <div style="font-size:12px; font-weight:700; color:var(--text-muted);">RECENCY SCORE (1-5)</div>
+
+              <div class="rfm-score-val" id="c360RScore">5 / 5</div>
+
+              <div style="font-size:12px; color:var(--text-secondary);">Purchased recently</div>
+
+            </div>
+
+            <div class="rfm-score-box">
+
+              <div style="font-size:12px; font-weight:700; color:var(--text-muted);">FREQUENCY SCORE (1-5)</div>
+
+              <div class="rfm-score-val" id="c360FScore">5 / 5</div>
+
+              <div style="font-size:12px; color:var(--text-secondary);">Frequent repeat buyer</div>
+
+            </div>
+
+            <div class="rfm-score-box">
+
+              <div style="font-size:12px; font-weight:700; color:var(--text-muted);">MONETARY SCORE (1-5)</div>
+
+              <div class="rfm-score-val" id="c360MScore">5 / 5</div>
+
+              <div style="font-size:12px; color:var(--text-secondary);">Top revenue tier</div>
+
+            </div>
+
+          </div>
+
+
+
+          <!-- AI Next-Best Action -->
+
+          <div class="ai-recommendation-box">
+
+            <div class="ai-rec-icon">ðŸ¤–</div>
+
+            <div class="ai-rec-text">
+
+              <h4>AI / XGBoost Recommended Next-Best Action</h4>
+
+              <p id="c360ActionText">VIP Platinum Account: Send priority wholesale catalog and quarterly rebate.</p>
+
+            </div>
+
+          </div>
+
+
+
+          <!-- Purchase History & Top Products -->
+
+          <div class="charts-grid-2">
+
+            <div>
+
+              <h3 style="font-size:15px; font-weight:700; margin-bottom:12px; font-family:var(--font-display);">Past Invoices Timeline</h3>
+
+              <div class="data-table-wrapper" style="max-height:300px;">
+
+                <table class="data-table">
+
+                  <thead>
+
+                    <tr>
+
+                      <th>Invoice No</th>
+
+                      <th>Invoice Date</th>
+
+                      <th>Items Count</th>
+
+                      <th>Total Units</th>
+
+                      <th>Invoice Total</th>
+
+                    </tr>
+
+                  </thead>
+
+                  <tbody id="c360InvoicesTable"></tbody>
+
+                </table>
+
+              </div>
+
+            </div>
+
+
+
+            <div>
+
+              <h3 style="font-size:15px; font-weight:700; margin-bottom:12px; font-family:var(--font-display);">Top Products Purchased</h3>
+
+              <div class="data-table-wrapper" style="max-height:300px;">
+
+                <table class="data-table">
+
+                  <thead>
+
+                    <tr>
+
+                      <th>Stock Code</th>
+
+                      <th>Description</th>
+
+                      <th>Units</th>
+
+                      <th>Spend</th>
+
+                    </tr>
+
+                  </thead>
+
+                  <tbody id="c360ProductsTable"></tbody>
+
+                </table>
+
+              </div>
+
+            </div>
+
+          </div>
+
+
+
+        </div>
+
+
+
+      </div>
+
+
+
+    </div>
+
+
+
+
+
+    <!-- ===================================================================
+
+         VIEW 3: COHORT STUDIO (MULTI-METRIC RETENTION)
+
+    =================================================================== -->
+
+    <div id="view-cohorts" class="view-panel">
+
+      
+
+      <div class="surface-card">
+
+        <div class="card-title-row">
+
+          <div>
+
+            <h2 class="card-title">Cohort Retention & Monetary Laboratory</h2>
+
+            <p class="card-subtitle">Toggle between customer retention decay (%), total cohort revenue (Â£), or active customer count</p>
+
+          </div>
+
+          <div class="tabs-nav">
+
+            <button class="tab-btn active" id="btnCohortRetention" onclick="switchCohortMetric('retention')">Retention Rate %</button>
+
+            <button class="tab-btn" id="btnCohortRevenue" onclick="switchCohortMetric('revenue')">Cohort Revenue (Â£)</button>
+
+            <button class="tab-btn" id="btnCohortCount" onclick="switchCohortMetric('count')">Active Customers</button>
+
+          </div>
+
+        </div>
+
+
+
+        <div class="cohort-table-wrapper">
+
+          <table class="cohort-table" id="cohortDetailedTable">
+
+            <thead>
+
+              <tr id="cohortDetailedHeaderRow">
+
+                <th class="cohort-month-col">Acquisition Cohort</th>
+
+                <th>Cohort Size</th>
+
+              </tr>
+
+            </thead>
+
+            <tbody id="cohortDetailedTableBody"></tbody>
+
+          </table>
+
+        </div>
+
+      </div>
+
+
+
+    </div>
+
+
+
+
+
+    <!-- ===================================================================
+
+         VIEW 4: ML CHURN RADAR & VIP RESCUE CENTER
+
+    =================================================================== -->
+
+    <div id="view-churn" class="view-panel">
+
+      
+
+      <div class="kpi-grid" style="grid-template-columns: repeat(3, 1fr); margin-bottom: 24px;">
+
+        <div class="kpi-card highlight-coral">
+
+          <div class="kpi-label">At-Risk High-Value Accounts</div>
+
+          <div class="kpi-value" id="rescueCountVal">0</div>
+
+          <div class="kpi-subtext">Accounts with Â£1,000+ spend</div>
+
+        </div>
+
+        <div class="kpi-card highlight-amber">
+
+          <div class="kpi-label">Revenue at Risk</div>
+
+          <div class="kpi-value" id="rescueRevenueVal">Â£0.00</div>
+
+          <div class="kpi-subtext">Capital threatened by customer churn</div>
+
+        </div>
+
+        <div class="kpi-card highlight-indigo">
+
+          <div class="kpi-label">Average Inactivity Gap</div>
+
+          <div class="kpi-value" id="rescueAvgGapVal">0 days</div>
+
+          <div class="kpi-subtext">Critical window to re-engage</div>
+
+        </div>
+
+      </div>
+
+
+
+      <div class="surface-card">
+
+        <div class="card-title-row">
+
+          <div>
+
+            <h2 class="card-title">VIP Retention Rescue Priority List</h2>
+
+            <p class="card-subtitle">Prioritized outreach list of accounts with high lifetime value and severe churn probability</p>
+
+          </div>
+
+          <button class="btn-primary" onclick="exportRescueCSV()">ðŸ“¥ Export Rescue CSV</button>
+
+        </div>
+
+
+
+        <div class="data-table-wrapper" style="max-height: 480px;">
+
+          <table class="data-table">
+
+            <thead>
+
+              <tr>
+
+                <th>Customer ID</th>
+
+                <th>Country</th>
+
+                <th>Lifetime Spend</th>
+
+                <th>Orders</th>
+
+                <th>Days Inactive</th>
+
+                <th>Customer Tier</th>
+
+                <th>ML Churn Probability</th>
+
+                <th>Action Recommendation</th>
+
+              </tr>
+
+            </thead>
+
+            <tbody id="rescueTableBody"></tbody>
+
+          </table>
+
+        </div>
+
+      </div>
+
+
+
+    </div>
+
+
+
+
+
+    <!-- ===================================================================
+
+         VIEW 5: LIVE SQL QUERY SANDBOX
+
+    =================================================================== -->
+
+    <div id="view-datastudio" class="view-panel" style="display:none;">
+
+      <div class="surface-card">
+
+        <div class="card-title-row">
+
+          <div>
+
+            <h2 class="card-title">Data Studio & Upload</h2>
+
+            <p class="card-subtitle">Upload datasets, add/modify transactions, and reset to baseline.</p>
+
+          </div>
+
+        </div>
+
+      </div>
+
+
+
+      <!-- Upload Section -->
+
+      <div class="surface-card">
+
+        <div class="card-title-row">
+
+          <div>
+
+            <h3 class="card-title">Upload Dataset</h3>
+
+            <p class="card-subtitle">Drag & drop CSV/Excel file or use file picker.</p>
+
+          </div>
+
+        </div>
+
+        <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
+
+          <p>Drop file here or click to select</p>
+
+          <input type="file" id="fileInput" accept=".csv,.xlsx,.xls" style="display:none" />
+
+        </div>
+
+        <div class="mode-select">
+
+          <label><input type="radio" name="uploadMode" value="append" checked /> Append Mode (default)</label>
+
+          <label><input type="radio" name="uploadMode" value="replace" /> Replace Mode</label>
+
+        </div>
+
+        <button class="btn-primary" onclick="uploadDatasetFile()">Upload</button>
+
+        <div id="uploadReceipt" class="receipt-card" style="display:none; margin-top:12px;">
+
+          <pre id="uploadReceiptContent"></pre>
+
+        </div>
+
+      </div>
+
+
+
+      <!-- Manual Transaction Form -->
+
+      <div class="surface-card">
+
+        <div class="card-title-row">
+
+          <div>
+
+            <h3 class="card-title">Add Manual Transaction</h3>
+
+            <p class="card-subtitle">Enter transaction details to insert a new record.</p>
+
+          </div>
+
+        </div>
+
+        <form id="manualTxForm" class="tx-form-grid" onsubmit="event.preventDefault(); submitManualTransaction();">
+
+          <input type="text" name="InvoiceNo" placeholder="Invoice No" required />
+
+          <input type="text" name="StockCode" placeholder="Stock Code" required />
+
+          <input type="text" name="Description" placeholder="Description" required />
+
+          <input type="number" name="Quantity" placeholder="Quantity" min="1" required />
+
+          <input type="text" name="InvoiceDate" placeholder="Invoice Date (YYYY-MM-DD)" required />
+
+          <input type="number" step="0.01" name="UnitPrice" placeholder="Unit Price" min="0.01" required />
+
+          <input type="number" name="CustomerID" placeholder="Customer ID" required />
+
+          <input type="text" name="Country" placeholder="Country" required />
+
+          <button class="btn-primary" type="submit">Add Transaction</button>
+
+        </form>
+
+        <div id="manualTxResult" style="margin-top:8px;"></div>
+
+      </div>
+
+
+
+      <!-- Recent Transactions Log -->
+
+      <div class="surface-card">
+
+        <div class="card-title-row">
+
+          <div>
+
+            <h3 class="card-title">Recent Transactions</h3>
+
+            <p class="card-subtitle">View and delete recently added records.</p>
+
+          </div>
+
+          <button class="btn-primary" onclick="resetBaselineDataset()">Reset to Cleaned Baseline</button>
+
+        </div>
+
+        <div class="data-table-wrapper" style="max-height:300px;">
+
+          <table class="data-table" id="recentTxTable">
+
+            <thead>
+
+              <tr>
+
+                <th>InvoiceNo</th><th>StockCode</th><th>Description</th><th>Qty</th><th>Date</th><th>UnitPrice</th><th>CustomerID</th><th>Country</th><th>Action</th>
+
+              </tr>
+
+            </thead>
+
+            <tbody id="recentTxBody"></tbody>
+
+          </table>
+
+        </div>
+
+      </div>
+
+    </div>
+
+
+
+    <!-- ===================================================================
+
+         VIEW 6: LIVE SQL QUERY SANDBOX
+
+    =================================================================== -->
+
+    <div id="view-sqlsandbox" class="view-panel" style="display:none;">
+
+      <div class="surface-card">
+
+        <div class="card-title-row">
+
+          <div>
+
+            <h2 class="card-title">Interactive SQL Query Sandbox</h2>
+
+            <p class="card-subtitle">Run live SQL queries against online_retail.db (392,692 rows) and inspect execution plans</p>
+
+          </div>
+
+          <div style="display:flex; align-items:center; gap:10px;">
+
+            <label for="sqlPresetSelect" style="font-size:13px; font-weight:600; color:var(--text-secondary);">Query Preset:</label>
+
+            <select id="sqlPresetSelect" class="filter-select" onchange="loadSQLPreset()">
+
+              <option value="preset1">Repeat Customer Revenue Share (93.09%)</option>
+
+              <option value="preset2">Pareto Spend Distribution (Top 5%, 10%, 20%)</option>
+
+              <option value="preset3">Order Gap Cadence with LAG()</option>
+
+              <option value="preset4">Customer Spend Ranking with DENSE_RANK()</option>
+
+              <option value="preset5">Data Quality &amp; Cleaning Null Audit</option>
+
+            </select>
+
+          </div>
+
+        </div>
+
+
+
+        <!-- SQL Editor Box -->
+
+        <div class="sql-editor-container">
+
+          <div class="sql-editor-toolbar">
+
+            <span style="font-family:var(--font-mono); font-size:12px; font-weight:700; color:var(--text-muted);">SQL EDITOR â€¢ SQLITE 3</span>
+
+            <div style="display:flex; align-items:center; gap:12px;">
+
+              <span id="sqlExecutionTimer" style="font-family:var(--font-mono); font-size:12px; font-weight:600; color:var(--accent-emerald);">Ready</span>
+
+              <button class="btn-primary" onclick="executeSQLQuery()">â–¶ Run SQL Query</button>
+
+            </div>
+
+          </div>
+
+          <textarea id="sqlTextarea" class="sql-textarea"></textarea>
+
+        </div>
+
+
+
+        <!-- Query Execution Plan Box -->
+
+        <div id="queryPlanBox" style="display:none;" class="query-plan-card">
+
+          <span style="font-weight:700; color:var(--accent-primary);">âš¡ SQLite Query Execution Plan (EXPLAIN QUERY PLAN):</span>
+
+          <div id="queryPlanText" style="margin-top:6px;"></div>
+
+        </div>
+
+
+
+        <!-- Query Results Table -->
+
+        <div class="data-table-wrapper" style="max-height: 400px;">
+
+          <table class="data-table" id="sqlResultsTable">
+
+            <thead id="sqlResultsThead">
+
+              <tr><th>Query Results will appear here</th></tr>
+
+            </thead>
+
+            <tbody id="sqlResultsTbody"></tbody>
+
+          </table>
+
+        </div>
+
+
+
+      </div>
+
+    </div>
+
+
+
+    <!-- Footer -->
+
+    <footer class="footer-bar">
+
+      Online Retail E-Commerce Analytics Platform â€¢ FastAPI, SQLite, and XGBoost â€¢ Live Port 8000
+
+    </footer>
+
+
+
+  </div>
+
+
+
+  <script src="/static/app.js"></script>
+
+</body>
+
+</html>
+
