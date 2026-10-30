@@ -441,7 +441,9 @@ def run_sql_sandbox(req: SQLQueryRequest):
 def get_customers(
     q: Optional[str] = Query(None),
     tier: Optional[str] = Query(None),
-    limit: int = Query(50, ge=1, le=200)
+    risk: Optional[str] = Query(None),
+    country_mode: Optional[str] = Query(None),
+    limit: int = Query(50, ge=1, le=500)
 ):
     conn = get_db()
     query = """
@@ -471,12 +473,16 @@ def get_customers(
     if q:
         query += " AND (CAST(CustomerID AS TEXT) LIKE ? OR Country LIKE ?)"
         params.extend([f"%{q}%", f"%{q}%"])
+    if country_mode == 'uk':
+        query += " AND Country = 'United Kingdom'"
+    elif country_mode == 'intl':
+        query += " AND Country != 'United Kingdom'"
     if tier and tier.lower() != 'all':
         query += " AND CASE WHEN SpendPct <= 0.10 THEN 'Platinum' WHEN SpendPct <= 0.25 THEN 'Gold' ELSE 'General' END = ?"
         params.append(tier)
         
     query += " ORDER BY TotalSpend DESC LIMIT ?"
-    params.append(limit)
+    params.append(limit if not risk else 500)
     
     df = pd.read_sql(query, conn, params=params)
     conn.close()
@@ -489,6 +495,13 @@ def get_customers(
     else:
         df['ChurnProbability'] = 0.50
         df['RiskTier'] = 'Unscored'
+
+    if risk == 'highrisk':
+        df = df[df['RiskTier'].str.contains('High', case=False, na=False) | (df['RecencyDays'] > 60)]
+        df = df.head(limit)
+    elif risk:
+        df = df[df['RiskTier'].str.contains(risk, case=False, na=False)]
+        df = df.head(limit)
         
     return df.to_dict(orient="records")
 

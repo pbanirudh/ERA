@@ -467,12 +467,31 @@ if (tierSelect) {
   tierSelect.addEventListener('change', searchCustomers);
 }
 
+let currentCustomerQuickFilter = 'all';
+
+function applyQuickFilter(filterType, btn) {
+  currentCustomerQuickFilter = filterType;
+  document.querySelectorAll('.chip-filter').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  searchCustomers();
+}
+
 async function searchCustomers() {
   const query = searchInput ? searchInput.value.trim() : '';
-  const tier = tierSelect ? tierSelect.value : 'all';
+  let tier = tierSelect ? tierSelect.value : 'all';
+  let risk = null;
+  let countryMode = null;
+
+  if (currentCustomerQuickFilter === 'Platinum') tier = 'Platinum';
+  else if (currentCustomerQuickFilter === 'Gold') tier = 'Gold';
+  else if (currentCustomerQuickFilter === 'highrisk') risk = 'highrisk';
+  else if (currentCustomerQuickFilter === 'uk') countryMode = 'uk';
+  else if (currentCustomerQuickFilter === 'intl') countryMode = 'intl';
   
   try {
-    const url = `/api/customers?limit=25&q=${encodeURIComponent(query)}&tier=${encodeURIComponent(tier)}`;
+    let url = `/api/customers?limit=30&q=${encodeURIComponent(query)}&tier=${encodeURIComponent(tier)}`;
+    if (risk) url += `&risk=${encodeURIComponent(risk)}`;
+    if (countryMode) url += `&country_mode=${encodeURIComponent(countryMode)}`;
     const res = await fetch(url);
     const customers = await res.json();
     
@@ -1283,3 +1302,242 @@ function downloadAiResponse() {
   a.download = `executive_retention_briefing_${new Date().toISOString().substring(0, 10)}.md`;
   a.click();
 }
+
+
+// ===================================================================
+// ENHANCED UTILITIES: TOASTS, CSV EXPORT, EXECUTIVE DOSSIER & OUTREACH
+// ===================================================================
+
+function showToast(message, type = 'info', duration = 3200) {
+  const container = document.getElementById('toastContainer');
+  if (!container) return;
+  const toast = document.createElement('div');
+  toast.className = `toast-item toast-${type}`;
+  const icons = { success: '✅', error: '⚠️', info: 'ℹ️' };
+  toast.innerHTML = `<span style="font-size:16px;">${icons[type] || 'ℹ️'}</span><span>${message}</span>`;
+  container.appendChild(toast);
+  setTimeout(() => {
+    toast.classList.add('fade-out');
+    setTimeout(() => toast.remove(), 250);
+  }, duration);
+}
+
+function exportTableToCSV(tableId, filename = 'export.csv') {
+  const table = document.getElementById(tableId);
+  if (!table) return;
+  const rows = Array.from(table.querySelectorAll('tr'));
+  if (rows.length === 0) {
+    showToast('No table data to export.', 'info');
+    return;
+  }
+  const csvLines = [];
+  rows.forEach(row => {
+    const cells = Array.from(row.querySelectorAll('th, td'));
+    if (cells.length > 0) {
+      const line = cells
+        .filter(c => !c.querySelector('button') && !c.classList.contains('no-export'))
+        .map(c => `"${c.innerText.trim().replace(/"/g, '""')}"`)
+        .join(',');
+      if (line) csvLines.push(line);
+    }
+  });
+  if (csvLines.length <= 1) {
+    showToast('No records found in table.', 'info');
+    return;
+  }
+  const blob = new Blob([csvLines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  showToast(`Exported ${filename} successfully!`, 'success');
+}
+
+function exportCustomerExplorerCSV() {
+  exportTableToCSV('customerTableBody', 'customer_portfolio_list.csv');
+}
+
+function exportSQLResultsCSV() {
+  const thead = document.getElementById('sqlResultsThead');
+  const tbody = document.getElementById('sqlResultsTbody');
+  if (!tbody || tbody.children.length === 0) {
+    showToast('Run a query first to export results.', 'info');
+    return;
+  }
+  let csv = [];
+  if (thead) {
+    const headers = Array.from(thead.querySelectorAll('th')).map(th => `"${th.innerText.trim().replace(/"/g, '""')}"`);
+    csv.push(headers.join(','));
+  }
+  Array.from(tbody.querySelectorAll('tr')).forEach(tr => {
+    const row = Array.from(tr.querySelectorAll('td')).map(td => `"${td.innerText.trim().replace(/"/g, '""')}"`);
+    csv.push(row.join(','));
+  });
+  const blob = new Blob([csv.join('\n')], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'sql_query_results.csv';
+  a.click();
+  showToast('Exported SQL query results to CSV!', 'success');
+}
+
+function copyCustomerOutreachPitch() {
+  const name = document.getElementById('c360Name')?.textContent || 'Customer';
+  const country = document.getElementById('c360Country')?.textContent || '';
+  const spend = document.getElementById('c360Spend')?.textContent || '£0';
+  const action = document.getElementById('c360ActionText')?.textContent || '';
+  const cid = currentCustomerDossierId || document.getElementById('c360Input')?.value || '';
+
+  const pitch = `Subject: Restock & Strategic Account Review - ${name}
+
+Hi [Purchasing Director],
+
+I am reaching out regarding your account with us (${name}, ${country}). According to our wholesale order history, your lifetime volume is ${spend}.
+
+Based on your purchasing cycle:
+${action}
+
+We would love to reserve priority pallet delivery and apply a 5% commercial rebate for your replenishment confirmed this week.
+
+Best regards,
+Senior Commercial Key Account Director`;
+
+  navigator.clipboard.writeText(pitch).then(() => {
+    showToast(`Copied executive pitch for Customer #${cid}!`, 'success');
+  }).catch(() => {
+    showToast('Failed to copy to clipboard.', 'error');
+  });
+}
+
+let dossierMarkdownCache = '';
+
+async function openExecutiveDossierModal() {
+  const modal = document.getElementById('dossierModal');
+  const body = document.getElementById('dossierModalBody');
+  if (!modal || !body) return;
+  modal.style.display = 'flex';
+  body.innerHTML = `
+    <div style="text-align:center; padding:40px;">
+      <div class="ai-spinner"></div>
+      <p style="margin-top:12px; font-weight:600; color:var(--text-secondary);">Synthesizing comprehensive executive dossier from live telemetry...</p>
+    </div>
+  `;
+  try {
+    const [kpisRes, vipsRes] = await Promise.all([
+      fetch('/api/kpis'),
+      fetch('/api/vip-rescue')
+    ]);
+    const kpis = await kpisRes.json();
+    const vips = await vipsRes.json();
+
+    const dateStr = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+    const topVips = (vips.accounts || []).slice(0, 5);
+    const vipRows = topVips.map(v => `<tr>
+      <td><strong>#${v.CustomerID}</strong></td>
+      <td>${v.Country}</td>
+      <td><strong>£${v.TotalSpend.toLocaleString('en-GB', {minimumFractionDigits:2})}</strong></td>
+      <td>${v.TotalOrders}</td>
+      <td><span style="color:#ef4444; font-weight:600;">${v.RecencyDays.toFixed(0)}d inactive</span></td>
+      <td><span class="badge badge-${v.Tier.toLowerCase()}">${v.Tier}</span></td>
+    </tr>`).join('');
+
+    dossierMarkdownCache = `# Executive Retail Analytics & Churn Dossier
+**Generated:** ${dateStr} • **Database:** 392,692 Cleared Transactions • **Active Accounts:** ${kpis.total_customers.toLocaleString()}
+
+## 1. Executive Performance Metrics
+- **Gross Revenue (GMV):** £${kpis.total_revenue.toLocaleString('en-GB', {minimumFractionDigits:2})}
+- **Average Order Value (AOV):** £${kpis.average_order_value.toFixed(2)}
+- **Repeat Account Loyalty:** ${kpis.repeat_customer_rate_pct}% of customers generate **${kpis.repeat_revenue_share_pct}% of revenue**
+- **Pareto Concentration:** Top 10% customers generate **${kpis.top_10_share_pct}% of GMV**
+- **At-Risk Churn Pool:** ${kpis.at_risk_customers.toLocaleString()} accounts (${kpis.churn_rate_pct}%)
+
+## 2. Priority VIP Accounts Requiring Immediate Triage
+${topVips.map(v => `- Account #${v.CustomerID} (${v.Country}): £${v.TotalSpend.toLocaleString('en-GB', {minimumFractionDigits:2})} spend, ${v.RecencyDays.toFixed(0)} days inactive.`).join('\n')}
+
+## 3. Prescriptive 90-Day Action Playbook
+1. **P0 (Days 1-14):** VIP Rescue Sprint for top at-risk accounts with >£1k spend.
+2. **P1 (Days 15-45):** Deploy Day-21 replenishment sequence to bridge the 28.4-day cadence.
+3. **P2 (Days 46-90):** Launch tier-weighted volume rebates to graduate Gold buyers to Platinum spend.
+`;
+
+    body.innerHTML = `
+      <div style="border-bottom:2px solid #e2e8f0; padding-bottom:16px; margin-bottom:20px;">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <h2 style="font-size:22px; font-family:var(--font-display); color:var(--text-main);">Executive Retail Intelligence Dossier</h2>
+          <span style="font-size:12px; font-weight:600; background:#eff6ff; color:#2563eb; padding:4px 12px; border-radius:999px;">Board-Level Report • ${dateStr}</span>
+        </div>
+        <p style="font-size:13px; color:var(--text-muted); margin-top:4px;">Operational Telemetry across 4,338 Accounts & 392,692 Validated Invoices</p>
+      </div>
+
+      <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:12px; margin-bottom:24px;">
+        <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:14px;">
+          <div style="font-size:11px; font-weight:700; color:var(--text-muted);">TOTAL REVENUE (GMV)</div>
+          <div style="font-size:20px; font-weight:800; color:#2563eb; margin-top:4px;">£${kpis.total_revenue.toLocaleString('en-GB', {minimumFractionDigits:2})}</div>
+          <div style="font-size:11px; color:#10b981; margin-top:2px;">£${kpis.average_order_value.toFixed(2)} AOV</div>
+        </div>
+        <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:14px;">
+          <div style="font-size:11px; font-weight:700; color:var(--text-muted);">REPEAT REVENUE SHARE</div>
+          <div style="font-size:20px; font-weight:800; color:#10b981; margin-top:4px;">${kpis.repeat_revenue_share_pct}%</div>
+          <div style="font-size:11px; color:var(--text-secondary); margin-top:2px;">${kpis.repeat_customer_rate_pct}% repeat buyers</div>
+        </div>
+        <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:14px;">
+          <div style="font-size:11px; font-weight:700; color:var(--text-muted);">PARETO CONCENTRATION</div>
+          <div style="font-size:20px; font-weight:800; color:#f59e0b; margin-top:4px;">${kpis.top_10_share_pct}%</div>
+          <div style="font-size:11px; color:#ef4444; margin-top:2px;">Top 10% controls 3/4 GMV</div>
+        </div>
+        <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:14px;">
+          <div style="font-size:11px; font-weight:700; color:var(--text-muted);">CHURN HAZARD POOL</div>
+          <div style="font-size:20px; font-weight:800; color:#ef4444; margin-top:4px;">${kpis.at_risk_customers.toLocaleString()}</div>
+          <div style="font-size:11px; color:var(--text-secondary); margin-top:2px;">${kpis.churn_rate_pct}% at-risk accounts</div>
+        </div>
+      </div>
+
+      <h3 style="font-size:15px; font-weight:700; margin-bottom:10px; color:var(--text-main);">Top 5 At-Risk VIP Commercial Accounts</h3>
+      <table class="data-table" style="margin-bottom:24px;">
+        <thead>
+          <tr>
+            <th>Customer ID</th><th>Country</th><th>Lifetime Spend</th><th>Orders</th><th>Inactivity Window</th><th>Tier</th>
+          </tr>
+        </thead>
+        <tbody>${vipRows}</tbody>
+      </table>
+
+      <h3 style="font-size:15px; font-weight:700; margin-bottom:10px; color:var(--text-main);">Prescriptive 90-Day Executive Playbook</h3>
+      <div style="background:#f0f9ff; border-left:4px solid #0284c7; padding:14px 18px; border-radius:0 8px 8px 0; font-size:13px; line-height:1.6;">
+        <p><strong>1. P0 VIP Concierge Rescue (Days 1–14):</strong> Direct personal outreach from Key Account Executives with customized restock audits, Net-45 credit terms, and freight allowances.</p>
+        <p style="margin-top:8px;"><strong>2. P1 Cadence Intercept Trigger (Days 15–45):</strong> Bridge the 77.6% Month-1 drop-off with automated Day-21 replenishment emails timed before the 28.4-day average reorder gap.</p>
+        <p style="margin-top:8px;"><strong>3. P2 Wholesale Volume Rebate Escalation (Days 46–90):</strong> Implement formal quarterly retroactive rebates (3% at £25k, 5% at £50k) to prevent competitor defection.</p>
+      </div>
+    `;
+  } catch (err) {
+    body.innerHTML = `<div style="color:#ef4444; padding:20px;">Failed to compile dossier: ${err.message}</div>`;
+  }
+}
+
+function closeExecutiveDossierModal() {
+  const modal = document.getElementById('dossierModal');
+  if (modal) modal.style.display = 'none';
+}
+
+function downloadDossierMarkdown() {
+  if (!dossierMarkdownCache) {
+    showToast('No dossier markdown available.', 'info');
+    return;
+  }
+  const blob = new Blob([dossierMarkdownCache], { type: 'text/markdown;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `executive_retail_dossier_${new Date().toISOString().substring(0, 10)}.md`;
+  a.click();
+  showToast('Downloaded Executive Dossier Markdown!', 'success');
+}
+
+// Global Escape Key Listener for Modals
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    closeExecutiveDossierModal();
+  }
+});

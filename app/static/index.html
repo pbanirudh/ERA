@@ -59,6 +59,7 @@
 
         </div>
 
+        <button class="quick-btn" style="background:#f8fafc; border-color:#cbd5e1; font-weight:600;" onclick="openExecutiveDossierModal()"><span>📑</span> Executive Dossier (PDF)</button>
         <button class="quick-btn" onclick="openAiAdvisorWithPreset('overview_diagnosis')"><span>✨</span> Explain with AI</button>
         <button class="quick-btn" onclick="refreshCurrentView()">
 
@@ -142,7 +143,7 @@
 
             <span class="kpi-label">Active Customers</span>
 
-            <div class="kpi-icon-pill" style="background:#eef2ff; color:#6366f1;">ðŸ‘¥</div>
+            <div class="kpi-icon-pill" style="background:#eef2ff; color:#6366f1;">👥</div>
 
           </div>
 
@@ -164,7 +165,7 @@
 
             <span class="kpi-label">Repeat Spend Share</span>
 
-            <div class="kpi-icon-pill" style="background:#ecfdf5; color:#10b981;">ðŸ”</div>
+            <div class="kpi-icon-pill" style="background:#ecfdf5; color:#10b981;">🔁</div>
 
           </div>
 
@@ -186,7 +187,7 @@
 
             <span class="kpi-label">Top 10% Spend Share</span>
 
-            <div class="kpi-icon-pill" style="background:#fffbeb; color:#f59e0b;">â­</div>
+            <div class="kpi-icon-pill" style="background:#fffbeb; color:#f59e0b;">⭐</div>
 
           </div>
 
@@ -208,7 +209,7 @@
 
             <span class="kpi-label">60-Day Churn Risk</span>
 
-            <div class="kpi-icon-pill" style="background:#fff1f2; color:#f43f5e;">âš ï¸</div>
+            <div class="kpi-icon-pill" style="background:#fff1f2; color:#f43f5e;">⚠️</div>
 
           </div>
 
@@ -343,11 +344,18 @@
           <div>
 
             <h2 class="card-title">Customer Portfolio Explorer</h2>
-
             <p class="card-subtitle">Click any Customer ID to view their Customer 360 profile</p>
-
           </div>
+          <button class="quick-btn" onclick="exportCustomerExplorerCSV()"><span>📥</span> Export CSV</button>
+        </div>
 
+        <div class="quick-chips-row">
+          <button class="chip-filter active" id="chipAll" onclick="applyQuickFilter('all', this)">All Accounts (4,338)</button>
+          <button class="chip-filter" id="chipPlat" onclick="applyQuickFilter('Platinum', this)">👑 Platinum VIPs</button>
+          <button class="chip-filter" id="chipGold" onclick="applyQuickFilter('Gold', this)">⭐ Gold Tier</button>
+          <button class="chip-filter" id="chipRisk" onclick="applyQuickFilter('highrisk', this)">⚠️ High Risk Churn</button>
+          <button class="chip-filter" id="chipUK" onclick="applyQuickFilter('uk', this)">🇬🇧 UK Accounts</button>
+          <button class="chip-filter" id="chipIntl" onclick="applyQuickFilter('intl', this)">🌍 International</button>
         </div>
 
 
@@ -356,7 +364,7 @@
 
           <div class="search-input-wrap">
 
-            <span class="search-icon">ðŸ”</span>
+            <span class="search-icon">🔍</span>
 
             <input type="text" id="customerSearchInput" class="search-input" placeholder="Search by CustomerID or Country (e.g. 14646, 17850, Germany)...">
 
@@ -555,7 +563,7 @@
 
           <div class="search-input-wrap">
 
-            <span class="search-icon">ðŸ”</span>
+            <span class="search-icon">🔍</span>
 
             <input type="number" id="c360Input" class="search-input" placeholder="Enter CustomerID (e.g. 14646, 17850, 12346)..." onkeydown="if(event.key==='Enter') lookupCustomer()">
 
@@ -693,15 +701,15 @@
 
           <div class="ai-recommendation-box">
 
-            <div class="ai-rec-icon">ðŸ¤–</div>
+            <div class="ai-rec-icon">🤖</div>
 
-            <div class="ai-rec-text">
-
+            <div class="ai-rec-text" style="flex:1;">
               <h4>AI / XGBoost Recommended Next-Best Action</h4>
-
               <p id="c360ActionText">VIP Platinum Account: Send priority wholesale catalog and quarterly rebate.</p>
-
             </div>
+            <button class="quick-btn" style="align-self:center; background:#ffffff;" onclick="copyCustomerOutreachPitch()">
+              <span>📋</span> Copy Outreach Pitch
+            </button>
 
           </div>
 
@@ -713,7 +721,10 @@
 
             <div>
 
-              <h3 style="font-size:15px; font-weight:700; margin-bottom:12px; font-family:var(--font-display);">Past Invoices Timeline</h3>
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                <h3 style="font-size:15px; font-weight:700; font-family:var(--font-display);">Past Invoices Timeline</h3>
+                <button class="quick-btn" style="padding:4px 10px; font-size:11px;" onclick="exportTableToCSV('c360InvoicesTable', 'customer_invoices.csv')"><span>📥</span> Export CSV</button>
+              </div>
 
               <div class="data-table-wrapper" style="max-height:300px;">
 
@@ -749,7 +760,10 @@
 
             <div>
 
-              <h3 style="font-size:15px; font-weight:700; margin-bottom:12px; font-family:var(--font-display);">Top Products Purchased</h3>
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                <h3 style="font-size:15px; font-weight:700; font-family:var(--font-display);">Top Products Purchased</h3>
+                <button class="quick-btn" style="padding:4px 10px; font-size:11px;" onclick="exportTableToCSV('c360ProductsTable', 'customer_products.csv')"><span>📥</span> Export CSV</button>
+              </div>
 
               <div class="data-table-wrapper" style="max-height:300px;">
 
@@ -923,7 +937,7 @@
 
           </div>
 
-          <button class="btn-primary" onclick="exportRescueCSV()">ðŸ“¥ Export Rescue CSV</button>
+          <button class="btn-primary" onclick="exportRescueCSV()">📥 Export Rescue CSV</button>
 
         </div>
 
@@ -1162,17 +1176,14 @@
             <label for="sqlPresetSelect" style="font-size:13px; font-weight:600; color:var(--text-secondary);">Query Preset:</label>
 
             <select id="sqlPresetSelect" class="filter-select" onchange="loadSQLPreset()">
-
-              <option value="preset1">Repeat Customer Revenue Share (93.09%)</option>
-
-              <option value="preset2">Pareto Spend Distribution (Top 5%, 10%, 20%)</option>
-
-              <option value="preset3">Order Gap Cadence with LAG()</option>
-
-              <option value="preset4">Customer Spend Ranking with DENSE_RANK()</option>
-
-              <option value="preset5">Data Quality &amp; Cleaning Null Audit</option>
-
+              <option value="preset1">1. Repeat Customer Revenue Share (93.09%)</option>
+              <option value="preset2">2. Pareto Spend Distribution (Top 5%, 10%, 20%)</option>
+              <option value="preset3">3. Order Gap Cadence with LAG()</option>
+              <option value="preset4">4. Customer Spend Ranking with DENSE_RANK()</option>
+              <option value="preset5">5. Data Quality &amp; Cleaning Null Audit</option>
+              <option value="preset6">6. Top 10 Inactive High-Spend Accounts (>60d Churn Risk)</option>
+              <option value="preset7">7. International Revenue &amp; AOV by Country</option>
+              <option value="preset8">8. Top 10 Bestselling Products by Volume &amp; GMV</option>
             </select>
 
           </div>
@@ -1193,6 +1204,7 @@
 
               <span id="sqlExecutionTimer" style="font-family:var(--font-mono); font-size:12px; font-weight:600; color:var(--accent-emerald);">Ready</span>
 
+              <button class="quick-btn" onclick="exportSQLResultsCSV()"><span>📥</span> Export CSV</button>
               <button class="btn-primary" onclick="executeSQLQuery()">▶ Run SQL Query</button>
 
             </div>
@@ -1375,6 +1387,34 @@
 
 
   <script src="/static/app.js"></script>
+
+
+    <!-- Toast Notification Container -->
+    <div id="toastContainer" class="toast-container"></div>
+
+    <!-- Executive Dossier Modal -->
+    <div id="dossierModal" class="modal-overlay" style="display:none;" onclick="if(event.target===this) closeExecutiveDossierModal()">
+      <div class="modal-card">
+        <div class="modal-header">
+          <div>
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span class="pulse-dot"></span>
+              <span class="modal-title">Executive Retail Intelligence Dossier</span>
+            </div>
+            <p style="font-size:12px; color:var(--text-muted); margin-top:2px;">Board-level analytical dossier synthesized from live SQLite telemetry</p>
+          </div>
+          <button class="modal-close-btn" onclick="closeExecutiveDossierModal()">×</button>
+        </div>
+        <div class="modal-body" id="dossierModalBody">
+          <!-- Dynamically populated -->
+        </div>
+        <div class="modal-footer">
+          <button class="quick-btn" onclick="downloadDossierMarkdown()"><span>📥</span> Download Markdown</button>
+          <button class="btn-primary" onclick="window.print()"><span>🖨️</span> Print / Save as PDF</button>
+          <button class="quick-btn" onclick="closeExecutiveDossierModal()">Close</button>
+        </div>
+      </div>
+    </div>
 
 </body>
 
