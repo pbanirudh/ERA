@@ -133,11 +133,13 @@ function switchView(viewName) {
   // Update Panels
   document.querySelectorAll('.view-panel').forEach(panel => {
     panel.classList.remove('active');
+    panel.style.display = 'none';
   });
   
   const targetPanel = document.getElementById(`view-${viewName}`);
   if (targetPanel) {
     targetPanel.classList.add('active');
+    targetPanel.style.display = 'block';
   }
   
   // Trigger View Initializer
