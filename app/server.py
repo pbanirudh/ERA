@@ -16,7 +16,7 @@ from fastapi.responses import FileResponse, Response
 import pandas as pd
 import numpy as np
 
-from app.ai_advisor import process_ai_advisor_request
+from app.ai_advisor import process_ai_advisor_request, invalidate_context_cache
 from app.churn_engine import rescore_customers
 
 DB_PATH = 'online_retail.db'
@@ -611,6 +611,7 @@ def upload_data(file: UploadFile = File(...), mode: str = Query("append", enum=[
     total_rows = conn.execute('SELECT COUNT(*) FROM Transactions').fetchone()[0]
     conn.close()
 
+    invalidate_context_cache()
     # Automatically rescore churn predictions to keep entire platform in sync
     churn_summary = None
     try:
@@ -652,6 +653,7 @@ def manual_transaction(tx: ManualTransaction):
             ),
         )
         conn.commit()
+        invalidate_context_cache()
     except Exception as e:
         conn.close()
         raise HTTPException(status_code=400, detail=str(e))
@@ -672,6 +674,7 @@ def delete_transaction(invoice_no: str, stock_code: str):
     conn.close()
     if deleted == 0:
         raise HTTPException(status_code=404, detail="Transaction not found")
+    invalidate_context_cache()
     return {"detail": "Transaction deleted"}
 
 @app.post("/api/reset-baseline")
@@ -692,6 +695,7 @@ def reset_baseline():
     total_rows = conn.execute('SELECT COUNT(*) FROM Transactions').fetchone()[0]
     conn.close()
 
+    invalidate_context_cache()
     try:
         rescore_customers(DB_PATH, CHURN_CSV)
     except Exception as e:
