@@ -19,6 +19,7 @@
   <link rel="stylesheet" href="/static/styles.css">
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 
 </head>
 
@@ -42,7 +43,7 @@
 
           <h1 class="brand-title">E-Commerce Retention & Revenue Platform</h1>
 
-          <p class="brand-subtitle">UK Wholesale Retail Intelligence â€¢ SQL, Python, Excel & Machine Learning</p>
+          <p class="brand-subtitle">UK Wholesale Retail Intelligence • SQL, Python, Excel & Machine Learning</p>
 
         </div>
 
@@ -54,13 +55,14 @@
 
           <span class="pulse-dot"></span>
 
-          <span>SQLite Connected â€¢ 392,692 Rows</span>
+          <span>SQLite Connected • 392,692 Rows</span>
 
         </div>
 
+        <button class="quick-btn" onclick="openAiAdvisorWithPreset('overview_diagnosis')"><span>✨</span> Explain with AI</button>
         <button class="quick-btn" onclick="refreshCurrentView()">
 
-          <span>â†»</span> Refresh Live
+          <span>↻</span> Refresh Live
 
         </button>
 
@@ -72,44 +74,28 @@
 
     <!-- Master Multi-View Navigation Menu -->
 
-    <nav class="main-menu-bar animate-entrance delay-1">
-
+        <nav class="main-menu-bar animate-entrance delay-1">
       <button class="menu-tab-btn active" data-view="overview" onclick="switchView('overview')">
-
-        <span>ðŸ“Š</span> Executive Overview
-
+        <span>📊</span> Executive Overview
       </button>
-
       <button class="menu-tab-btn" data-view="customer360" onclick="switchView('customer360')">
-
-        <span>ðŸ‘¤</span> Customer 360
-
+        <span>👤</span> Customer 360
       </button>
-
       <button class="menu-tab-btn" data-view="cohorts" onclick="switchView('cohorts')">
-
-        <span>ðŸ§¬</span> Cohort Studio
-
+        <span>🧬</span> Cohort Studio
       </button>
-
       <button class="menu-tab-btn" data-view="churn" onclick="switchView('churn')">
-
-        <span>ðŸŽ¯</span> ML Churn Radar
-
+        <span>🎯</span> ML Churn Radar
       </button>
-
       <button class="menu-tab-btn" data-view="datastudio" onclick="switchView('datastudio')">
-
-        <span>ðŸ“</span> Data Studio & Upload
-
+        <span>📁</span> Data Studio & Upload
       </button>
-
       <button class="menu-tab-btn" data-view="sqlsandbox" onclick="switchView('sqlsandbox')">
-
-        <span>ðŸ”</span> SQL Sandbox
-
+        <span>🔍</span> SQL Sandbox
       </button>
-
+      <button class="menu-tab-btn" data-view="aiadvisor" onclick="switchView('aiadvisor')">
+        <span>🤖</span> AI Executive Advisor
+      </button>
     </nav>
 
 
@@ -134,11 +120,11 @@
 
             <span class="kpi-label">Total Revenue</span>
 
-            <div class="kpi-icon-pill" style="background:#eff6ff; color:#2563eb;">Â£</div>
+            <div class="kpi-icon-pill" style="background:#eff6ff; color:#2563eb;">£</div>
 
           </div>
 
-          <div class="kpi-value" id="kpiRevenue">Â£0.00</div>
+          <div class="kpi-value" id="kpiRevenue">£0.00</div>
 
           <div class="kpi-subtext">
 
@@ -164,7 +150,7 @@
 
           <div class="kpi-subtext">
 
-            <span class="trend-badge trend-positive">Â£449 AOV</span> across 37 nations
+            <span class="trend-badge trend-positive">£449 AOV</span> across 37 nations
 
           </div>
 
@@ -208,7 +194,7 @@
 
           <div class="kpi-subtext">
 
-            <span class="trend-badge trend-positive">433 VIPs</span> Â£5.46M volume
+            <span class="trend-badge trend-positive">433 VIPs</span> £5.46M volume
 
           </div>
 
@@ -490,7 +476,7 @@
 
             <p style="font-size: 12px; color: var(--text-muted); margin-top: 14px;">
 
-              *Simulates 2012 projected revenue using empirical 2011 baseline (Â£8.89M) and tier-weighted retention elasticity.
+              *Simulates 2012 projected revenue using empirical 2011 baseline (£8.89M) and tier-weighted retention elasticity.
 
             </p>
 
@@ -502,13 +488,13 @@
 
             <div class="sim-headline">Projected 2012 Revenue</div>
 
-            <div class="sim-big-value" id="projectedRevenueVal">Â£9,675,413</div>
+            <div class="sim-big-value" id="projectedRevenueVal">£9,675,413</div>
 
-            <div class="sim-incremental" id="incrementalRevenueVal">+Â£788,204 (+8.87% Uplift)</div>
+            <div class="sim-incremental" id="incrementalRevenueVal">+£788,204 (+8.87% Uplift)</div>
 
             <div style="font-size: 12px; color: var(--text-secondary); margin-top: 12px;" id="simTierBreakdown">
 
-              Platinum: Â£5.94M â€¢ Gold: Â£1.29M â€¢ General: Â£2.45M
+              Platinum: £5.94M • Gold: £1.29M • General: £2.45M
 
             </div>
 
@@ -557,6 +543,7 @@
             <button class="quick-btn" onclick="lookupCustomer(18102)">#18102 (VIP)</button>
 
             <button class="quick-btn" onclick="lookupCustomer(17450)">#17450 (At-Risk)</button>
+            <button class="quick-btn" style="background:var(--accent-primary-light); color:var(--accent-primary); border-color:#bfdbfe;" onclick="generateCustomerAiStrategy()"><span>✨</span> AI Retention Strategy</button>
 
           </div>
 
@@ -596,7 +583,7 @@
 
                 <h3 id="c360Name">Customer #14646</h3>
 
-                <p id="c360Country">Country: Netherlands â€¢ Customer Since: Dec 2010</p>
+                <p id="c360Country">Country: Netherlands • Customer Since: Dec 2010</p>
 
               </div>
 
@@ -622,7 +609,7 @@
 
               <div class="kpi-label">Lifetime Spend</div>
 
-              <div class="kpi-value" id="c360Spend">Â£0.00</div>
+              <div class="kpi-value" id="c360Spend">£0.00</div>
 
               <div class="kpi-subtext" id="c360Rank">Portfolio Rank: #1</div>
 
@@ -642,7 +629,7 @@
 
               <div class="kpi-label">Average Order Value</div>
 
-              <div class="kpi-value" id="c360AOV">Â£0.00</div>
+              <div class="kpi-value" id="c360AOV">£0.00</div>
 
               <div class="kpi-subtext">per completed order</div>
 
@@ -828,7 +815,7 @@
 
             <h2 class="card-title">Cohort Retention & Monetary Laboratory</h2>
 
-            <p class="card-subtitle">Toggle between customer retention decay (%), total cohort revenue (Â£), or active customer count</p>
+            <p class="card-subtitle">Toggle between customer retention decay (%), total cohort revenue (£), or active customer count</p>
 
           </div>
 
@@ -836,7 +823,7 @@
 
             <button class="tab-btn active" id="btnCohortRetention" onclick="switchCohortMetric('retention')">Retention Rate %</button>
 
-            <button class="tab-btn" id="btnCohortRevenue" onclick="switchCohortMetric('revenue')">Cohort Revenue (Â£)</button>
+            <button class="tab-btn" id="btnCohortRevenue" onclick="switchCohortMetric('revenue')">Cohort Revenue (£)</button>
 
             <button class="tab-btn" id="btnCohortCount" onclick="switchCohortMetric('count')">Active Customers</button>
 
@@ -896,7 +883,7 @@
 
           <div class="kpi-value" id="rescueCountVal">0</div>
 
-          <div class="kpi-subtext">Accounts with Â£1,000+ spend</div>
+          <div class="kpi-subtext">Accounts with £1,000+ spend</div>
 
         </div>
 
@@ -904,7 +891,7 @@
 
           <div class="kpi-label">Revenue at Risk</div>
 
-          <div class="kpi-value" id="rescueRevenueVal">Â£0.00</div>
+          <div class="kpi-value" id="rescueRevenueVal">£0.00</div>
 
           <div class="kpi-subtext">Capital threatened by customer churn</div>
 
@@ -1028,28 +1015,34 @@
 
         </div>
 
-        <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
-
-          <p>Drop file here or click to select</p>
-
-          <input type="file" id="fileInput" accept=".csv,.xlsx,.xls" style="display:none" />
-
+                <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
+          <div class="upload-zone-icon">☁️</div>
+          <div class="upload-zone-text" id="uploadZoneLabel">Drop CSV or Excel (.xlsx) file here, or click to browse</div>
+          <div class="upload-zone-sub">Supported formats: .csv, .xlsx, .xls • Automatic cleaning, validation & de-duplication</div>
+          <input type="file" id="fileInput" accept=".csv,.xlsx,.xls" style="display:none" onchange="handleFileSelected(this)" />
         </div>
 
-        <div class="mode-select">
-
-          <label><input type="radio" name="uploadMode" value="append" checked /> Append Mode (default)</label>
-
-          <label><input type="radio" name="uploadMode" value="replace" /> Replace Mode</label>
-
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:16px;">
+          <div class="mode-select" style="margin-bottom:0;">
+            <label><input type="radio" name="uploadMode" value="append" checked /> <span>Append Mode (Add to existing)</span></label>
+            <label><input type="radio" name="uploadMode" value="replace" /> <span>Replace Mode (Fresh overwrite)</span></label>
+          </div>
+          <div style="display:flex; gap:10px;">
+            <button class="btn-primary" id="uploadBtn" onclick="uploadDatasetFile()">
+              <span>📤</span> Upload & Clean Dataset
+            </button>
+            <button class="quick-btn" onclick="retrainChurnModel()">
+              <span>⚡</span> Re-Score Churn ML
+            </button>
+          </div>
         </div>
 
-        <button class="btn-primary" onclick="uploadDatasetFile()">Upload</button>
-
-        <div id="uploadReceipt" class="receipt-card" style="display:none; margin-top:12px;">
-
-          <pre id="uploadReceiptContent"></pre>
-
+        <div id="uploadReceipt" class="receipt-card" style="display:none; margin-top:14px;">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span style="font-weight:700; color:var(--accent-primary); font-size:13px;">✅ Data Ingestion & Hygiene Receipt:</span>
+            <span id="uploadReceiptMode" class="trend-badge trend-positive">Mode: Append</span>
+          </div>
+          <div class="receipt-grid" id="uploadReceiptGrid"></div>
         </div>
 
       </div>
@@ -1194,13 +1187,13 @@
 
           <div class="sql-editor-toolbar">
 
-            <span style="font-family:var(--font-mono); font-size:12px; font-weight:700; color:var(--text-muted);">SQL EDITOR â€¢ SQLITE 3</span>
+            <span style="font-family:var(--font-mono); font-size:12px; font-weight:700; color:var(--text-muted);">SQL EDITOR • SQLITE 3</span>
 
             <div style="display:flex; align-items:center; gap:12px;">
 
               <span id="sqlExecutionTimer" style="font-family:var(--font-mono); font-size:12px; font-weight:600; color:var(--accent-emerald);">Ready</span>
 
-              <button class="btn-primary" onclick="executeSQLQuery()">â–¶ Run SQL Query</button>
+              <button class="btn-primary" onclick="executeSQLQuery()">▶ Run SQL Query</button>
 
             </div>
 
@@ -1216,7 +1209,7 @@
 
         <div id="queryPlanBox" style="display:none;" class="query-plan-card">
 
-          <span style="font-weight:700; color:var(--accent-primary);">âš¡ SQLite Query Execution Plan (EXPLAIN QUERY PLAN):</span>
+          <span style="font-weight:700; color:var(--accent-primary);">⚡ SQLite Query Execution Plan (EXPLAIN QUERY PLAN):</span>
 
           <div id="queryPlanText" style="margin-top:6px;"></div>
 
@@ -1250,11 +1243,128 @@
 
 
 
+    
+    <!-- ===================================================================
+         VIEW 7: AI EXECUTIVE ADVISOR & STRATEGY ASSISTANT
+    =================================================================== -->
+    <div id="view-aiadvisor" class="view-panel" style="display:none;">
+      
+      <!-- Top Advisor Header Card -->
+      <div class="surface-card">
+        <div class="card-title-row">
+          <div>
+            <h2 class="card-title" style="display:flex; align-items:center; gap:8px;">
+              <span>🤖</span> AI Executive Advisor &amp; Strategy Copilot
+            </h2>
+            <p class="card-subtitle">Real-time analytical reasoning powered by Google Gemini LLM &amp; Live SQLite Telemetry</p>
+          </div>
+          <div style="display:flex; align-items:center; gap:10px;">
+            <button class="quick-btn" onclick="toggleApiKeyModal()">
+              <span>⚙️</span> Gemini API Settings
+            </button>
+            <span id="aiModelIndicator" class="trend-badge trend-positive">Embedded CAO Engine Ready</span>
+          </div>
+        </div>
+
+        <!-- Optional API Key Settings Bar -->
+        <div id="apiKeySettingsBar" style="display:none; background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:12px 16px; margin-top:12px;">
+          <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+            <label style="font-size:12px; font-weight:700; color:var(--text-secondary);">Google Gemini API Key (Optional):</label>
+            <input type="password" id="geminiApiKeyInput" class="search-input" style="flex:1; min-width:240px; padding:6px 12px; font-size:12px;" placeholder="AIzaSy... (leave blank to use embedded reasoning engine)" />
+            <button class="btn-primary" style="padding:6px 14px; font-size:12px;" onclick="saveGeminiApiKey()">Save Key</button>
+            <button class="quick-btn" style="padding:6px 12px; font-size:12px;" onclick="clearGeminiApiKey()">Clear Key</button>
+            <span style="font-size:11px; color:var(--text-muted);">Stored securely in browser session.</span>
+          </div>
+        </div>
+
+        <!-- Executive Diagnostic Metric Strips -->
+        <div class="ai-kpi-strip" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:12px; margin-top:16px;">
+          <div class="ai-mini-card">
+            <span class="ai-mini-label">Retention Health Rating</span>
+            <span class="ai-mini-val" id="aiHealthRating">B+ Stable</span>
+            <span class="ai-mini-sub">65.6% Repeat Customer Loyalty</span>
+          </div>
+          <div class="ai-mini-card">
+            <span class="ai-mini-label">Pareto Risk Exposure</span>
+            <span class="ai-mini-val" id="aiParetoRisk">High (72.5%)</span>
+            <span class="ai-mini-sub">Top 10% Drives 3/4 GMV</span>
+          </div>
+          <div class="ai-mini-card">
+            <span class="ai-mini-label">At-Risk Capital Pool</span>
+            <span class="ai-mini-val" id="aiAtRiskPool">£1.54M</span>
+            <span class="ai-mini-sub">>60 Days Inactive Accounts</span>
+          </div>
+          <div class="ai-mini-card">
+            <span class="ai-mini-label">Recoverable ROI (5% Save)</span>
+            <span class="ai-mini-val" id="aiRecoverableVal" style="color:var(--accent-emerald);">+£77,326</span>
+            <span class="ai-mini-sub">High-Margin Incremental GMV</span>
+          </div>
+        </div>
+
+        <!-- Strategy Prompt Presets -->
+        <div style="margin-top:20px;">
+          <div style="font-size:12px; font-weight:700; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:8px;">
+            Strategic Analysis Presets:
+          </div>
+          <div class="ai-prompt-pills-row">
+            <button class="ai-pill-btn active" id="btnPresetOverview" onclick="triggerAiPreset('overview_diagnosis')">
+              📊 Full Executive Diagnosis
+            </button>
+            <button class="ai-pill-btn" id="btnPresetAction" onclick="triggerAiPreset('action_plan')">
+              🎯 Prioritized Action Plan (What Should I Do?)
+            </button>
+            <button class="ai-pill-btn" id="btnPresetVip" onclick="triggerAiPreset('vip_retention')">
+              👑 VIP Concentration &amp; Rescue Strategy
+            </button>
+            <button class="ai-pill-btn" id="btnPresetCohort" onclick="triggerAiPreset('cohort_strategy')">
+              🧬 Month-1 Cohort Churn Recovery
+            </button>
+          </div>
+        </div>
+
+        <!-- Custom Prompt Bar -->
+        <div class="ai-custom-prompt-wrap" style="margin-top:16px;">
+          <div style="display:flex; gap:10px;">
+            <input type="text" id="aiCustomInput" class="search-input" placeholder="Ask custom strategic question (e.g. 'How do I reduce churn for European accounts?' or 'Draft an email to VIP #14646')..." onkeydown="if(event.key==='Enter') submitAiCustomQuery()" />
+            <button class="btn-primary" id="aiSubmitBtn" onclick="submitAiCustomQuery()" style="white-space:nowrap; padding:0 20px;">
+              <span>🚀</span> Ask AI
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- AI Response Container -->
+      <div class="surface-card" style="margin-top:16px;">
+        <div class="card-title-row">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span class="pulse-dot"></span>
+            <h3 class="card-title" id="aiResponseTitle">Executive Briefing &amp; Strategic Guidance</h3>
+          </div>
+          <div style="display:flex; gap:8px;">
+            <button class="quick-btn" onclick="copyAiResponse()">📋 Copy Markdown</button>
+            <button class="quick-btn" onclick="downloadAiResponse()">📥 Download Report</button>
+          </div>
+        </div>
+
+        <!-- Loading Skeleton -->
+        <div id="aiLoadingBox" style="display:none; padding:40px 20px; text-align:center;">
+          <div class="ai-spinner"></div>
+          <p style="margin-top:12px; font-size:14px; font-weight:600; color:var(--text-secondary);">Analyzing real-time database telemetry &amp; synthesizing strategic guidance...</p>
+        </div>
+
+        <!-- Markdown Output Content -->
+        <div id="aiResponseContent" class="ai-markdown-output">
+          <!-- Populated by JavaScript -->
+        </div>
+      </div>
+
+    </div>
+
     <!-- Footer -->
 
     <footer class="footer-bar">
 
-      Online Retail E-Commerce Analytics Platform â€¢ FastAPI, SQLite, and XGBoost â€¢ Live Port 8000
+      Online Retail E-Commerce Analytics Platform • FastAPI, SQLite, and XGBoost • Live Port 8000
 
     </footer>
 

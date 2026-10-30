@@ -152,10 +152,14 @@ function switchView(viewName) {
     loadDetailedCohortMatrix('retention');
   } else if (viewName === 'churn') {
     loadVIPRescueCenter();
+  } else if (viewName === 'datastudio') {
+    loadRecentTransactions();
   } else if (viewName === 'sqlsandbox') {
     if (!document.getElementById('sqlTextarea').value) {
       loadSQLPreset();
     }
+  } else if (viewName === 'aiadvisor') {
+    loadAiAdvisorInitial();
   }
 }
 
@@ -164,7 +168,9 @@ function refreshCurrentView() {
   else if (currentView === 'customer360') lookupCustomer();
   else if (currentView === 'cohorts') loadDetailedCohortMatrix('retention');
   else if (currentView === 'churn') loadVIPRescueCenter();
+  else if (currentView === 'datastudio') loadRecentTransactions();
   else if (currentView === 'sqlsandbox') executeSQLQuery();
+  else if (currentView === 'aiadvisor') triggerAiPreset('overview_diagnosis');
 }
 
 // ----------------------------------------------------
@@ -391,17 +397,31 @@ async function loadChurnDistribution() {
   }
 }
 
-function loadCadenceChart() {
+async function loadCadenceChart() {
   const ctx = document.getElementById('cadenceChart').getContext('2d');
   if (cadenceChartInstance) cadenceChartInstance.destroy();
+
+  let labels = ['<= 30 Days', '31 - 60 Days', '61 - 90 Days', '91 - 120 Days', '> 120 Days'];
+  let values = [58.88, 20.19, 8.51, 5.03, 7.39];
+
+  try {
+    const res = await fetch('/api/cadence-distribution');
+    if (res.ok) {
+      const data = await res.json();
+      labels = data.map(d => d.bucket);
+      values = data.map(d => d.share_pct);
+    }
+  } catch (err) {
+    console.warn('Using baseline cadence values:', err);
+  }
   
   cadenceChartInstance = new Chart(ctx, {
     type: 'bar',
     data: {
-      labels: ['<= 30 Days', '31 - 60 Days', '61 - 90 Days', '91 - 120 Days', '> 120 Days'],
+      labels: labels,
       datasets: [{
         label: '% of Repurchases',
-        data: [58.88, 20.19, 8.51, 5.03, 7.39],
+        data: values,
         backgroundColor: ['#10b981', '#34d399', '#fbbf24', '#f87171', '#ef4444'],
         borderRadius: 6
       }]
@@ -503,6 +523,7 @@ async function searchCustomers() {
 // 2. View 2: Customer 360 Logic
 // ----------------------------------------------------
 async function lookupCustomer(cid = null) {
+  const _cid = cid || parseInt(document.getElementById('c360Input').value); if (_cid) currentCustomerDossierId = _cid;
   const custId = cid || parseInt(document.getElementById('c360Input').value);
   if (!custId) {
     alert('Please enter a valid Customer ID');
@@ -820,4 +841,443 @@ async function runSimulation() {
   } catch (err) {
     console.error('Error running simulation:', err);
   }
+}
+
+
+// ===================================================================
+// DATA STUDIO & UPLOAD CLIENT LOGIC
+// ===================================================================
+
+let currentCustomerDossierId = 14646;
+
+function updateNavRowCount(count) {
+  const pill = document.querySelector('.live-pill span:last-child');
+  if (pill) {
+    pill.textContent = `SQLite Connected • ${Number(count).toLocaleString()} Rows`;
+  }
+}
+
+function handleFileSelected(input) {
+  if (input.files && input.files.length > 0) {
+    const file = input.files[0];
+    const sizeKB = (file.size / 1024).toFixed(1);
+    const label = document.getElementById('uploadZoneLabel');
+    if (label) {
+      label.innerHTML = `<strong>Selected:</strong> ${file.name} (${sizeKB} KB) — Click 'Upload & Clean' to ingest`;
+    }
+    const zone = document.getElementById('uploadZone');
+    if (zone) zone.style.borderColor = 'var(--accent-primary)';
+  }
+}
+
+// Drag & drop listeners
+document.addEventListener('DOMContentLoaded', () => {
+  const zone = document.getElementById('uploadZone');
+  if (zone) {
+    ['dragenter', 'dragover'].forEach(name => {
+      zone.addEventListener(name, e => {
+        e.preventDefault();
+        zone.classList.add('dragover');
+      }, false);
+    });
+    ['dragleave', 'drop'].forEach(name => {
+      zone.addEventListener(name, e => {
+        e.preventDefault();
+        zone.classList.remove('dragover');
+      }, false);
+    });
+    zone.addEventListener('drop', e => {
+      const dt = e.dataTransfer;
+      if (dt.files && dt.files.length > 0) {
+        document.getElementById('fileInput').files = dt.files;
+        handleFileSelected(document.getElementById('fileInput'));
+      }
+    });
+  }
+  
+  // Check stored Gemini key
+  const savedKey = localStorage.getItem('gemini_api_key');
+  if (savedKey) {
+    const keyInput = document.getElementById('geminiApiKeyInput');
+    if (keyInput) keyInput.value = savedKey;
+    const indicator = document.getElementById('aiModelIndicator');
+    if (indicator) indicator.textContent = 'Google Gemini LLM Connected';
+  }
+});
+
+async function uploadDatasetFile() {
+  const fileInput = document.getElementById('fileInput');
+  if (!fileInput.files || fileInput.files.length === 0) {
+    alert('Please select or drop a CSV or Excel (.xlsx) file first.');
+    return;
+  }
+  const file = fileInput.files[0];
+  const mode = document.querySelector('input[name="uploadMode"]:checked')?.value || 'append';
+  const btn = document.getElementById('uploadBtn');
+  const origText = btn.innerHTML;
+  btn.innerHTML = '<span>⏳</span> Ingesting & Cleaning...';
+  btn.disabled = true;
+
+  const formData = new FormData();
+  formData.append('file', file);
+
+  try {
+    const res = await fetch(`/api/upload-data?mode=${mode}`, {
+      method: 'POST',
+      body: formData
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      alert('Upload Error: ' + (err.detail || 'Failed to process file'));
+      return;
+    }
+    const data = await res.json();
+
+    // Render receipt
+    const receipt = document.getElementById('uploadReceipt');
+    const grid = document.getElementById('uploadReceiptGrid');
+    if (receipt && grid) {
+      receipt.style.display = 'block';
+      const modeEl = document.getElementById('uploadReceiptMode');
+      if (modeEl) modeEl.textContent = `Mode: ${data.mode.toUpperCase()}`;
+      grid.innerHTML = `
+        <div class="receipt-item">
+          <div class="receipt-item-label">Raw Rows</div>
+          <div class="receipt-item-val">${data.raw_count.toLocaleString()}</div>
+        </div>
+        <div class="receipt-item">
+          <div class="receipt-item-label">Cancellations Removed</div>
+          <div class="receipt-item-val" style="color:#ef4444;">-${data.filtered_cancellations.toLocaleString()}</div>
+        </div>
+        <div class="receipt-item">
+          <div class="receipt-item-label">Null Users Removed</div>
+          <div class="receipt-item-val" style="color:#f59e0b;">-${data.filtered_null_customers.toLocaleString()}</div>
+        </div>
+        <div class="receipt-item">
+          <div class="receipt-item-label">Invalid Qty/Price</div>
+          <div class="receipt-item-val" style="color:#f59e0b;">-${data.filtered_non_positive.toLocaleString()}</div>
+        </div>
+        <div class="receipt-item">
+          <div class="receipt-item-label">Duplicates Removed</div>
+          <div class="receipt-item-val" style="color:#64748b;">-${data.filtered_duplicates.toLocaleString()}</div>
+        </div>
+        <div class="receipt-item">
+          <div class="receipt-item-label">Clean Added</div>
+          <div class="receipt-item-val" style="color:#10b981;">+${data.clean_count_added.toLocaleString()}</div>
+        </div>
+        <div class="receipt-item">
+          <div class="receipt-item-label">Total DB Rows</div>
+          <div class="receipt-item-val" style="color:#2563eb;">${data.total_rows_after.toLocaleString()}</div>
+        </div>
+      `;
+    }
+
+    updateNavRowCount(data.total_rows_after);
+    loadRecentTransactions();
+    alert(`✅ Dataset successfully ingested! ${data.clean_count_added.toLocaleString()} clean records added. Total database rows: ${data.total_rows_after.toLocaleString()}`);
+  } catch (err) {
+    console.error('Upload failed:', err);
+    alert('Upload failed: ' + err.message);
+  } finally {
+    btn.innerHTML = origText;
+    btn.disabled = false;
+  }
+}
+
+async function submitManualTransaction() {
+  const form = document.getElementById('manualTxForm');
+  const formData = new FormData(form);
+  const payload = {
+    InvoiceNo: formData.get('InvoiceNo'),
+    StockCode: formData.get('StockCode'),
+    Description: formData.get('Description'),
+    Quantity: parseInt(formData.get('Quantity')),
+    InvoiceDate: formData.get('InvoiceDate'),
+    UnitPrice: parseFloat(formData.get('UnitPrice')),
+    CustomerID: parseInt(formData.get('CustomerID')),
+    Country: formData.get('Country')
+  };
+
+  const resBox = document.getElementById('manualTxResult');
+  try {
+    const res = await fetch('/api/manual-transaction', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      resBox.innerHTML = `<span style="color:#ef4444; font-size:13px; font-weight:600;">❌ Error: ${err.detail}</span>`;
+      return;
+    }
+    resBox.innerHTML = `<span style="color:#10b981; font-size:13px; font-weight:600;">✅ Transaction added successfully to database!</span>`;
+    form.reset();
+    loadRecentTransactions();
+    setTimeout(() => { if (resBox) resBox.innerHTML = ''; }, 4000);
+  } catch (err) {
+    resBox.innerHTML = `<span style="color:#ef4444; font-size:13px; font-weight:600;">❌ Network Error: ${err.message}</span>`;
+  }
+}
+
+async function deleteTransaction(invoiceNo, stockCode) {
+  if (!confirm(`Delete line-item Invoice #${invoiceNo} / StockCode ${stockCode}?`)) return;
+  try {
+    const res = await fetch(`/api/transaction/${encodeURIComponent(invoiceNo)}/${encodeURIComponent(stockCode)}`, {
+      method: 'DELETE'
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      alert('Delete failed: ' + err.detail);
+      return;
+    }
+    loadRecentTransactions();
+  } catch (err) {
+    alert('Error deleting transaction: ' + err.message);
+  }
+}
+
+async function resetBaselineDataset() {
+  if (!confirm('Are you sure you want to restore the database to the 392,692 cleaned baseline dataset? Any newly added records will be overwritten.')) return;
+  try {
+    const res = await fetch('/api/reset-baseline', { method: 'POST' });
+    if (!res.ok) {
+      alert('Reset failed');
+      return;
+    }
+    const data = await res.json();
+    updateNavRowCount(data.total_rows);
+    loadRecentTransactions();
+    alert(`✅ Database restored to original baseline (${data.total_rows.toLocaleString()} clean rows).`);
+  } catch (err) {
+    alert('Error resetting baseline: ' + err.message);
+  }
+}
+
+async function loadRecentTransactions() {
+  const tbody = document.getElementById('recentTxBody');
+  if (!tbody) return;
+  try {
+    const res = await fetch('/api/recent-transactions?limit=25');
+    if (!res.ok) return;
+    const data = await res.json();
+    if (!data || data.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; color:var(--text-muted);">No transactions found</td></tr>';
+      return;
+    }
+    tbody.innerHTML = data.map(r => `
+      <tr>
+        <td><span style="font-family:var(--font-mono); font-weight:700;">#${r.InvoiceNo}</span></td>
+        <td><span style="font-family:var(--font-mono); font-size:12px;">${r.StockCode}</span></td>
+        <td title="${r.Description}">${r.Description && r.Description.length > 26 ? r.Description.substring(0, 26) + '...' : r.Description}</td>
+        <td><strong>${r.Quantity}</strong></td>
+        <td style="font-size:12px; color:var(--text-muted);">${r.InvoiceDate ? r.InvoiceDate.substring(0, 10) : ''}</td>
+        <td>£${Number(r.UnitPrice).toFixed(2)}</td>
+        <td><strong>#${r.CustomerID}</strong></td>
+        <td>${r.Country}</td>
+        <td>
+          <button class="btn-danger-sm" onclick="deleteTransaction('${r.InvoiceNo}', '${r.StockCode}')">Delete</button>
+        </td>
+      </tr>
+    `).join('');
+  } catch (err) {
+    console.error('Error loading recent transactions:', err);
+  }
+}
+
+async function retrainChurnModel() {
+  if (!confirm('Re-extract features and update ML churn hazard predictions across the current database?')) return;
+  try {
+    const res = await fetch('/api/retrain-churn-model', { method: 'POST' });
+    const data = await res.json();
+    alert(`⚡ ML Churn Model Successfully Re-Trained!
+
+• Customers Scored: ${data.customer_count.toLocaleString()}
+• High Risk: ${data.high_risk_count.toLocaleString()}
+• Moderate Risk: ${data.moderate_risk_count.toLocaleString()}
+• Low Risk: ${data.low_risk_count.toLocaleString()}
+• Avg Risk: ${(data.average_churn_probability * 100).toFixed(1)}%`);
+    if (currentView === 'churn') loadVIPRescueCenter();
+  } catch (err) {
+    alert('Error retraining model: ' + err.message);
+  }
+}
+
+// ===================================================================
+// AI EXECUTIVE ADVISOR CLIENT LOGIC
+// ===================================================================
+
+let lastAiResponseMarkdown = "";
+
+function toggleApiKeyModal() {
+  const bar = document.getElementById('apiKeySettingsBar');
+  if (bar) {
+    bar.style.display = bar.style.display === 'none' ? 'block' : 'none';
+  }
+}
+
+function saveGeminiApiKey() {
+  const val = document.getElementById('geminiApiKeyInput').value.trim();
+  if (val) {
+    localStorage.setItem('gemini_api_key', val);
+    const ind = document.getElementById('aiModelIndicator');
+    if (ind) ind.textContent = 'Google Gemini LLM Connected';
+    alert('✅ Gemini API Key saved locally! Future queries will use live Gemini LLM.');
+    toggleApiKeyModal();
+  } else {
+    alert('Please enter a valid key.');
+  }
+}
+
+function clearGeminiApiKey() {
+  localStorage.removeItem('gemini_api_key');
+  document.getElementById('geminiApiKeyInput').value = '';
+  const ind = document.getElementById('aiModelIndicator');
+  if (ind) ind.textContent = 'Embedded CAO Engine Ready';
+  alert('Gemini API key cleared. Reverted to embedded strategic CAO engine.');
+}
+
+function openAiAdvisorWithPreset(presetType) {
+  switchView('aiadvisor');
+  triggerAiPreset(presetType);
+}
+
+function generateCustomerAiStrategy() {
+  const cid = currentCustomerDossierId || 14646;
+  switchView('aiadvisor');
+  askAiAdvisor('customer_strategy', null, cid);
+}
+
+function triggerAiPreset(presetKey) {
+  // Update pill active classes
+  const map = {
+    'overview_diagnosis': 'btnPresetOverview',
+    'action_plan': 'btnPresetAction',
+    'vip_retention': 'btnPresetVip',
+    'cohort_strategy': 'btnPresetCohort'
+  };
+  document.querySelectorAll('.ai-pill-btn').forEach(b => b.classList.remove('active'));
+  const activeBtn = document.getElementById(map[presetKey]);
+  if (activeBtn) activeBtn.classList.add('active');
+
+  askAiAdvisor(presetKey);
+}
+
+function submitAiCustomQuery() {
+  const input = document.getElementById('aiCustomInput');
+  const query = input ? input.value.trim() : '';
+  if (!query) {
+    alert('Please enter a strategic question.');
+    return;
+  }
+  document.querySelectorAll('.ai-pill-btn').forEach(b => b.classList.remove('active'));
+  askAiAdvisor('custom', query);
+}
+
+let aiAdvisorInitialized = false;
+function loadAiAdvisorInitial() {
+  if (!aiAdvisorInitialized) {
+    aiAdvisorInitialized = true;
+    triggerAiPreset('overview_diagnosis');
+  }
+}
+
+async function askAiAdvisor(queryType, customPrompt = null, customerId = null) {
+  const loading = document.getElementById('aiLoadingBox');
+  const content = document.getElementById('aiResponseContent');
+  const title = document.getElementById('aiResponseTitle');
+  const submitBtn = document.getElementById('aiSubmitBtn');
+
+  if (loading) loading.style.display = 'block';
+  if (content) content.style.display = 'none';
+  if (submitBtn) submitBtn.disabled = true;
+
+  const titles = {
+    'overview_diagnosis': '📊 Executive Retail Intelligence & Health Briefing',
+    'action_plan': '🎯 Prioritized 90-Day Retention & Revenue Playbook (What to Do)',
+    'vip_retention': '👑 VIP Pareto Concentration & At-Risk Rescue Strategy',
+    'cohort_strategy': '🧬 Month-1 Cohort Retention Chasm & Onboarding Playbook',
+    'customer_strategy': `👤 Account Growth & Retention Playbook for Customer #${customerId}`,
+    'custom': `💡 Strategic Analysis: "${customPrompt ? customPrompt.substring(0, 45) + '...' : 'Custom Query'}"`
+  };
+  if (title) title.textContent = titles[queryType] || 'Executive Strategic Guidance';
+
+  const apiKey = localStorage.getItem('gemini_api_key') || null;
+
+  try {
+    const res = await fetch('/api/ai-advisor', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        query_type: queryType,
+        custom_prompt: customPrompt,
+        customer_id: customerId,
+        api_key: apiKey
+      })
+    });
+
+    if (!res.ok) {
+      const err = await res.json();
+      content.innerHTML = `<div style="color:#ef4444; padding:20px;"><strong>Error:</strong> ${err.detail || 'Failed to generate AI advice'}</div>`;
+      return;
+    }
+
+    const data = await res.json();
+    lastAiResponseMarkdown = data.markdown;
+
+    // Update indicator
+    const ind = document.getElementById('aiModelIndicator');
+    if (ind) {
+      ind.textContent = data.source === 'Google Gemini LLM' ? '⚡ Powered by Google Gemini' : '🛡️ Embedded CAO Strategist';
+    }
+
+    // Update KPI strip if metrics present
+    if (data.context_metrics) {
+      const m = data.context_metrics;
+      const paretoEl = document.getElementById('aiParetoRisk');
+      if (paretoEl) paretoEl.textContent = `High (${m.top_10_revenue_share_pct}%)`;
+      const poolEl = document.getElementById('aiAtRiskPool');
+      if (poolEl) poolEl.textContent = `£${((m.total_revenue * 0.174)/1e6).toFixed(2)}M`;
+      const recovEl = document.getElementById('aiRecoverableVal');
+      if (recovEl) recovEl.textContent = `+£${((m.total_revenue * 0.174 * 0.05)).toLocaleString('en-GB', {maximumFractionDigits:0})}`;
+    }
+
+    // Format markdown
+    if (window.marked) {
+      content.innerHTML = marked.parse(data.markdown);
+    } else {
+      content.innerHTML = `<pre style="white-space:pre-wrap; font-family:var(--font-sans);">${data.markdown}</pre>`;
+    }
+  } catch (err) {
+    console.error('AI Advisor error:', err);
+    if (content) content.innerHTML = `<div style="color:#ef4444; padding:20px;">Network error contacting AI Advisor: ${err.message}</div>`;
+  } finally {
+    if (loading) loading.style.display = 'none';
+    if (content) content.style.display = 'block';
+    if (submitBtn) submitBtn.disabled = false;
+  }
+}
+
+function copyAiResponse() {
+  if (!lastAiResponseMarkdown) {
+    alert('No AI response to copy.');
+    return;
+  }
+  navigator.clipboard.writeText(lastAiResponseMarkdown).then(() => {
+    alert('📋 Strategic guidance markdown copied to clipboard!');
+  }).catch(() => {
+    alert('Could not copy automatically. Select and copy from the screen.');
+  });
+}
+
+function downloadAiResponse() {
+  if (!lastAiResponseMarkdown) {
+    alert('No AI response to download.');
+    return;
+  }
+  const blob = new Blob([lastAiResponseMarkdown], { type: 'text/markdown;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `executive_retention_briefing_${new Date().toISOString().substring(0, 10)}.md`;
+  a.click();
 }

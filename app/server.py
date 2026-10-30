@@ -16,6 +16,9 @@ from fastapi.responses import FileResponse, Response
 import pandas as pd
 import numpy as np
 
+from app.ai_advisor import process_ai_advisor_request
+from app.churn_engine import rescore_customers
+
 DB_PATH = 'online_retail.db'
 CHURN_CSV = 'customer_churn_predictions.csv'
 
@@ -28,6 +31,12 @@ def get_db():
 
 class SQLQueryRequest(BaseModel):
     query: str
+
+class AIAdvisorRequest(BaseModel):
+    query_type: Optional[str] = "overview_diagnosis"
+    custom_prompt: Optional[str] = None
+    customer_id: Optional[int] = None
+    api_key: Optional[str] = None
 
 @app.get("/api/kpis")
 def get_kpis():
@@ -78,6 +87,19 @@ def get_kpis():
     """
     cursor.execute(q_churn)
     row_churn = dict(cursor.fetchone())
+
+    q_top10 = """
+    WITH CustSpend AS (
+        SELECT CustomerID, SUM(Quantity * UnitPrice) AS spend,
+               CUME_DIST() OVER (ORDER BY SUM(Quantity * UnitPrice) DESC) AS cume
+        FROM Transactions GROUP BY CustomerID
+    )
+    SELECT ROUND(SUM(CASE WHEN cume <= 0.10 THEN spend ELSE 0 END) * 100.0 / NULLIF(SUM(spend), 0), 2) AS top10_share
+    FROM CustSpend;
+    """
+    cursor.execute(q_top10)
+    top10_row = cursor.fetchone()
+    top10_share = top10_row['top10_share'] if top10_row and top10_row['top10_share'] is not None else 72.5
     
     conn.close()
     
@@ -94,7 +116,7 @@ def get_kpis():
         "repeat_revenue_share_pct": repeat_rev_share,
         "at_risk_customers": row_churn['at_risk_count'],
         "churn_rate_pct": row_churn['churn_rate_pct'],
-        "top_10_share_pct": 61.41
+        "top_10_share_pct": top10_share
     }
 
 @app.get("/api/revenue-trend")
@@ -475,10 +497,31 @@ def get_forecast(
     growth: float = Query(8.0),
     churn_save: float = Query(5.0)
 ):
-    base_revenue = 8887208.89
-    plat_rev = 5457733.65
-    gold_rev = 1177511.66
-    gen_rev = 2251963.58
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("SELECT ROUND(SUM(Quantity * UnitPrice), 2) FROM Transactions;")
+    row_sum = cursor.fetchone()
+    base_revenue = float(row_sum[0]) if row_sum and row_sum[0] is not None else 8887208.89
+
+    q_tier_sums = """
+    WITH CustSpend AS (
+        SELECT CustomerID, SUM(Quantity * UnitPrice) AS spend,
+               CUME_DIST() OVER (ORDER BY SUM(Quantity * UnitPrice) DESC) AS cume
+        FROM Transactions GROUP BY CustomerID
+    )
+    SELECT 
+        ROUND(SUM(CASE WHEN cume <= 0.10 THEN spend ELSE 0 END), 2) AS plat,
+        ROUND(SUM(CASE WHEN cume > 0.10 AND cume <= 0.25 THEN spend ELSE 0 END), 2) AS gold,
+        ROUND(SUM(CASE WHEN cume > 0.25 THEN spend ELSE 0 END), 2) AS gen
+    FROM CustSpend;
+    """
+    cursor.execute(q_tier_sums)
+    t_row = cursor.fetchone()
+    conn.close()
+
+    plat_rev = float(t_row['plat']) if t_row and t_row['plat'] is not None else (base_revenue * 0.614)
+    gold_rev = float(t_row['gold']) if t_row and t_row['gold'] is not None else (base_revenue * 0.132)
+    gen_rev = float(t_row['gen']) if t_row and t_row['gen'] is not None else (base_revenue * 0.254)
     
     organic_mult = 1.0 + (growth / 100.0)
     at_risk_pool = base_revenue * 0.174
@@ -560,10 +603,20 @@ def upload_data(file: UploadFile = File(...), mode: str = Query("append", enum=[
         conn.commit()
     # Insert cleaned rows
     df.to_sql('Transactions', conn, if_exists='append', index=False)
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_tx_cust ON Transactions(CustomerID);")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_tx_date ON Transactions(InvoiceDate);")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_tx_inv ON Transactions(InvoiceNo);")
     conn.commit()
     # Compute new total rows for reporting
     total_rows = conn.execute('SELECT COUNT(*) FROM Transactions').fetchone()[0]
     conn.close()
+
+    # Automatically rescore churn predictions to keep entire platform in sync
+    churn_summary = None
+    try:
+        churn_summary = rescore_customers(DB_PATH, CHURN_CSV)
+    except Exception as e:
+        print(f"Churn rescore warning on upload: {e}")
 
     return {
         "raw_count": raw_count,
@@ -573,7 +626,8 @@ def upload_data(file: UploadFile = File(...), mode: str = Query("append", enum=[
         "filtered_duplicates": int(filtered_duplicates),
         "clean_count_added": int(clean_count_added),
         "total_rows_after": int(total_rows),
-        "mode": mode
+        "mode": mode,
+        "churn_summary": churn_summary
     }
 
 @app.post("/api/manual-transaction")
@@ -631,10 +685,103 @@ def reset_baseline():
     conn.execute('DELETE FROM Transactions')
     conn.commit()
     df.to_sql('Transactions', conn, if_exists='append', index=False)
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_tx_cust ON Transactions(CustomerID);")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_tx_date ON Transactions(InvoiceDate);")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_tx_inv ON Transactions(InvoiceNo);")
     conn.commit()
     total_rows = conn.execute('SELECT COUNT(*) FROM Transactions').fetchone()[0]
     conn.close()
+
+    try:
+        rescore_customers(DB_PATH, CHURN_CSV)
+    except Exception as e:
+        print(f"Churn rescore warning on reset: {e}")
+
     return {"detail": "Baseline restored", "total_rows": int(total_rows)}
+
+@app.get("/api/recent-transactions")
+def get_recent_transactions(limit: int = 25):
+    """Returns the most recent transactions from the database."""
+    conn = get_db()
+    q = """
+    SELECT InvoiceNo, StockCode, Description, Quantity, InvoiceDate, UnitPrice, CustomerID, Country
+    FROM Transactions
+    ORDER BY rowid DESC
+    LIMIT ?;
+    """
+    df = pd.read_sql(q, conn, params=[limit])
+    conn.close()
+    return df.to_dict(orient="records")
+
+@app.get("/api/cadence-distribution")
+def get_cadence_distribution():
+    """Dynamically computes the empirical repurchase cadence distribution using SQL LAG()."""
+    conn = get_db()
+    q = """
+    WITH Distinct_Invoices AS (
+        SELECT DISTINCT CustomerID, InvoiceNo, InvoiceDate FROM Transactions
+    ),
+    Gaps AS (
+        SELECT 
+            CustomerID,
+            InvoiceDate,
+            LAG(InvoiceDate) OVER (PARTITION BY CustomerID ORDER BY InvoiceDate) AS PrevDate,
+            ROUND(julianday(InvoiceDate) - julianday(LAG(InvoiceDate) OVER (PARTITION BY CustomerID ORDER BY InvoiceDate)), 1) AS DaysGap
+        FROM Distinct_Invoices
+    ),
+    Buckets AS (
+        SELECT 
+            CASE 
+                WHEN DaysGap <= 30 THEN '<= 30 Days'
+                WHEN DaysGap <= 60 THEN '31 - 60 Days'
+                WHEN DaysGap <= 90 THEN '61 - 90 Days'
+                WHEN DaysGap <= 120 THEN '91 - 120 Days'
+                ELSE '> 120 Days'
+            END AS bucket,
+            COUNT(*) AS repurchases
+        FROM Gaps
+        WHERE PrevDate IS NOT NULL AND DaysGap IS NOT NULL
+        GROUP BY bucket
+    ),
+    Totals AS (
+        SELECT SUM(repurchases) AS total_repurchases FROM Buckets
+    )
+    SELECT 
+        b.bucket,
+        b.repurchases,
+        ROUND(b.repurchases * 100.0 / NULLIF(t.total_repurchases, 0), 2) AS share_pct
+    FROM Buckets b
+    CROSS JOIN Totals t;
+    """
+    df = pd.read_sql(q, conn)
+    conn.close()
+    order = ['<= 30 Days', '31 - 60 Days', '61 - 90 Days', '91 - 120 Days', '> 120 Days']
+    bucket_map = {row['bucket']: row['share_pct'] for _, row in df.iterrows()}
+    return [{"bucket": b, "share_pct": bucket_map.get(b, 0.0)} for b in order]
+
+@app.post("/api/retrain-churn-model")
+def retrain_churn_model():
+    """Recomputes RFM and churn hazard scores for all customers across the current database."""
+    try:
+        res = rescore_customers(DB_PATH, CHURN_CSV)
+        return res
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/ai-advisor")
+def ai_advisor_endpoint(req: AIAdvisorRequest):
+    """Generates executive-level diagnostic briefings and actionable strategic recommendations."""
+    try:
+        result = process_ai_advisor_request(
+            query_type=req.query_type or "overview_diagnosis",
+            custom_prompt=req.custom_prompt,
+            customer_id=req.customer_id,
+            api_key=req.api_key,
+            db_path=DB_PATH
+        )
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 # *** NEW ENDPOINTS END ***
 # Mount static files
