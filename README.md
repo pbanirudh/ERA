@@ -14,13 +14,14 @@
 The **Executive Retail Analytics & Churn Intelligence Platform** is an enterprise-grade, full-stack decision support system built on **392,692 retail transactions** (£8.89M GMV). It combines real-time SQL analytics, machine learning churn hazard modeling with XGBoost, an interactive Data Studio for ingesting new datasets, and an **AI Executive Advisor** that explains analytical results and prescribes prioritized retention playbooks.
 
 ### Multi-View Navigation Suite:
-1. 📊 **Executive Overview:** 5 executive KPI cards, dynamic revenue trends, Pareto customer tier distribution, empirical repurchase cadence, and interactive 2012 revenue scenario simulator.
-2. 👤 **Customer 360:** Individual account dossier with dynamic RFM scores (1–5), XGBoost churn probability, lifetime order timeline, top purchased SKUs, and one-click AI retention strategy generation.
+1. 📊 **Executive Overview:** 5 executive KPI cards, dynamic revenue trends, Pareto customer tier distribution, empirical repurchase cadence, quick-filter chips, and interactive 2012 revenue scenario simulator.
+2. 👤 **Customer 360:** Individual account dossier with dynamic RFM scores (1–5), XGBoost churn probability, lifetime order timeline, top purchased SKUs, 1-click B2B outreach pitch generator, and AI retention strategy formulation.
 3. 🧬 **Cohort Studio:** Dynamic acquisition-month cohort matrix tracking Month-0 to Month-12 retention decay, cohort revenue volume, and active customer counts.
 4. 🎯 **ML Churn Radar & VIP Rescue:** Machine learning churn classification (Low, Moderate, Critical Risk) with an actionable VIP Rescue Center and CSV export.
 5. 📁 **Data Studio & Ingestion Engine:** Drag-and-drop CSV/Excel upload with automated data cleaning, manual transaction logging, record deletion, and one-click baseline restoration.
-6. 🔍 **Interactive SQL Sandbox:** In-browser query editor preloaded with 5 analytical presets and live SQLite execution plans (`EXPLAIN QUERY PLAN`).
+6. 🔍 **Interactive SQL Sandbox:** In-browser query editor preloaded with 8 analytical business presets, query results CSV export, and live SQLite execution plans (`EXPLAIN QUERY PLAN`).
 7. 🤖 **AI Executive Advisor & Strategist:** Grounded in live database telemetry, powered by **Google Gemini LLM** (with built-in Chief Analytics Officer reasoning engine fallback) to deliver data-backed executive briefings, root-cause diagnostics, and prioritized P0/P1/P2 action plans.
+8. 📑 **Executive Dossier (Print & PDF Export):** 1-click board-ready executive dossier modal with clean `@media print` formatting for instant PDF reports.
 
 ---
 
@@ -84,7 +85,11 @@ Open your browser to: **`http://localhost:8000`**
    - 🧬 **Month-1 Cohort Churn Recovery:** Actionable onboarding and replenishment triggers to fix the 77.6% dropoff.
 3. **Custom Natural Language Questions:** Type any custom question into the prompt box (e.g., *"How do I increase average order value from £449 to £550?"*) and click **Ask AI**.
 4. **Google Gemini LLM Integration (Optional):** Click **⚙️ Gemini API Settings**, enter your `GEMINI_API_KEY` (or set `export GEMINI_API_KEY="your-key"` in your shell), and save. The platform seamlessly upgrades to live Gemini 1.5/2.0 Flash reasoning!
-5. **Customer 360 AI Strategy:** Look up any customer in the **Customer 360** tab and click **"✨ AI Retention Strategy"** to generate an account-specific commercial outreach script and custom rebate offer.
+5. **Customer 360 AI Strategy & Pitch:** Look up any customer in the **Customer 360** tab and click **"✨ AI Retention Strategy"** or **"📋 Copy Outreach Pitch"** to generate an account-specific commercial outreach script and custom rebate offer.
+
+### 📑 Generating Executive Dossiers & Exporting Data
+1. **One-Click Board Dossier Export:** Click the **"📑 Executive Dossier (PDF)"** button in the header at any time. It synthesizes operational telemetry, high-risk VIP accounts, and strategic action items. Click **"🖨️ Print / Save as PDF"** for clean paper or PDF output.
+2. **Table CSV Downloads:** Click **"📥 Export CSV"** across Customer Portfolio Explorer, Customer 360 Invoices/Products, and SQL Sandbox query results for instant spreadsheet analysis.
 
 ---
 
